@@ -26,7 +26,13 @@ export function GameProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    socket.on('lobby_list', (msg) => setLobbies(msg.lobbies));
+    socket.on('lobby_list', (msg) => {
+      setLobbies(msg.lobbies);
+      if (screenRef.current === 'login') {
+        setLoggingIn(false);
+        setScreen('browser');
+      }
+    });
 
     socket.on('lobby_state', (msg) => {
       setCurrentLobby(msg.lobby);
@@ -92,9 +98,11 @@ export function GameProvider({ children }) {
     socket.on('error', (msg) => showError(msg.message));
   }, [socket, showError]);
 
+  const [loggingIn, setLoggingIn] = useState(false);
+
   const login = useCallback((username) => {
+    setLoggingIn(true);
     socket.connect(username);
-    setScreen('browser');
   }, [socket]);
 
   const createLobby = useCallback((opts) => {
@@ -162,7 +170,7 @@ export function GameProvider({ children }) {
 
   return (
     <GameContext.Provider value={{
-      screen, playerId: socket.playerId, playerName: socket.playerName,
+      screen, loggingIn, playerId: socket.playerId, playerName: socket.playerName,
       connected: socket.connected, reconnecting: socket.reconnecting,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,

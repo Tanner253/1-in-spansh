@@ -6,20 +6,16 @@ import LobbyRoom from './components/LobbyRoom';
 import GameScreen from './components/GameScreen';
 
 function ConnectionBanner() {
-  const { connected, reconnecting, screen } = useGame();
+  const { reconnecting, screen } = useGame();
 
-  if (screen === 'login' || connected) return null;
+  if (screen === 'login' || !reconnecting) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-600/95 text-white text-center py-2 px-4 text-sm font-medium shadow-lg">
-      {reconnecting ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          Reconnecting to server...
-        </span>
-      ) : (
-        <span>Connection lost. Attempting to reconnect...</span>
-      )}
+      <span className="flex items-center justify-center gap-2">
+        <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        Reconnecting to server...
+      </span>
     </div>
   );
 }

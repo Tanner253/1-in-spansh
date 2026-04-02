@@ -68,7 +68,7 @@ const ROADMAP = [
 ];
 
 export default function LoginScreen() {
-  const { login } = useGame();
+  const { login, loggingIn } = useGame();
   const [username, setUsername] = useState('');
 
   const handleSubmit = (e) => {
@@ -105,10 +105,15 @@ export default function LoginScreen() {
           />
           <button
             type="submit"
-            disabled={!username.trim()}
+            disabled={!username.trim() || loggingIn}
             className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors text-lg"
           >
-            Play Now
+            {loggingIn ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Connecting...
+              </span>
+            ) : 'Play Now'}
           </button>
         </form>
 
