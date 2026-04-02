@@ -28,10 +28,7 @@ export function GameProvider({ children }) {
   useEffect(() => {
     socket.on('lobby_list', (msg) => {
       setLobbies(msg.lobbies);
-      if (screenRef.current === 'login') {
-        setLoggingIn(false);
-        setScreen('browser');
-      }
+      if (screenRef.current === 'login') setScreen('browser');
     });
 
     socket.on('lobby_state', (msg) => {
@@ -74,16 +71,6 @@ export function GameProvider({ children }) {
       setChatMessages(prev => [...prev.slice(-99), msg.message]);
     });
 
-    socket.on('reconnected', () => {
-      socket.send({ type: 'get_lobbies' });
-      if (screenRef.current === 'game') {
-        setGameState(null);
-        setGameResult(null);
-        setGameId(null);
-        setScreen('browser');
-      }
-    });
-
     socket.on('kicked', () => {
       setCurrentLobby(null);
       setChatMessages([]);
@@ -91,17 +78,10 @@ export function GameProvider({ children }) {
       showError('You were kicked from the lobby');
     });
 
-    socket.on('player_forfeited', (msg) => {
-      // Handled via game_state update; could show a toast later
-    });
-
     socket.on('error', (msg) => showError(msg.message));
   }, [socket, showError]);
 
-  const [loggingIn, setLoggingIn] = useState(false);
-
   const login = useCallback((username) => {
-    setLoggingIn(true);
     socket.connect(username);
   }, [socket]);
 
@@ -170,8 +150,7 @@ export function GameProvider({ children }) {
 
   return (
     <GameContext.Provider value={{
-      screen, loggingIn, playerId: socket.playerId, playerName: socket.playerName,
-      connected: socket.connected, reconnecting: socket.reconnecting,
+      screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
       playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
