@@ -859,28 +859,46 @@ export default function GameScreen() {
       )}
 
       {/* Game Over */}
-      {gameResult && (
-        <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 text-center max-w-sm border border-white/10 shadow-2xl">
-            <div className="text-6xl mb-4">{gameResult.winnerId === playerId ? '🏆' : '💸'}</div>
-            <h2 className="text-3xl font-black text-white mb-2">
-              {gameResult.winnerId === playerId ? 'VICTORY!' : 'DEFEAT'}
-            </h2>
-            <p className="text-gray-400 mb-4">
-              {gameResult.winnerId === playerId ? 'You played all your cards!' : `${gameResult.winnerName} won!`}
-            </p>
-            {gameResult.wager && (
-              <div className={`text-2xl font-bold mb-4 ${gameResult.winnerId === playerId ? 'text-green-400' : 'text-red-400'}`}>
-                {gameResult.winnerId === playerId ? '+' : '-'}{gameResult.wager.amount * gamePlayers.length} {gameResult.wager.token}
-              </div>
-            )}
-            <button
-              onClick={returnToLobby}
-              className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-105 transition-all"
-            >Continue</button>
+      {gameResult && (() => {
+        const iWon = gameResult.winnerId === playerId;
+        const wasForfeit = !!gameResult.forfeit;
+        const iForfeited = wasForfeit && gameResult.forfeit.id === playerId;
+        const pCount = gameResult.playerCount || gamePlayers.length || 2;
+        const totalPot = gameResult.wager ? gameResult.wager.amount * pCount : 0;
+        const myWager = gameResult.wager ? gameResult.wager.amount : 0;
+
+        let subtitle;
+        if (wasForfeit) {
+          subtitle = iForfeited
+            ? 'You forfeited the match.'
+            : `${gameResult.forfeit.name} forfeited.`;
+        } else {
+          subtitle = iWon
+            ? 'You played all your cards!'
+            : `${gameResult.winnerName} played all their cards.`;
+        }
+
+        return (
+          <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 text-center max-w-sm border border-white/10 shadow-2xl">
+              <div className="text-6xl mb-4">{iWon ? '🏆' : (wasForfeit && iForfeited ? '🏳️' : '💸')}</div>
+              <h2 className="text-3xl font-black text-white mb-2">
+                {iWon ? 'VICTORY!' : (wasForfeit && iForfeited ? 'FORFEITED' : 'DEFEAT')}
+              </h2>
+              <p className="text-gray-400 mb-4">{subtitle}</p>
+              {gameResult.wager && (
+                <div className={`text-2xl font-bold mb-4 ${iWon ? 'text-green-400' : 'text-red-400'}`}>
+                  {iWon ? `+${totalPot - myWager}` : `-${myWager}`} {gameResult.wager.token}
+                </div>
+              )}
+              <button
+                onClick={returnToLobby}
+                className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-105 transition-all"
+              >Continue</button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

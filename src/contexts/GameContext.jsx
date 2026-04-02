@@ -59,6 +59,8 @@ export function GameProvider({ children }) {
         winnerId: msg.winnerId,
         winnerName: msg.winnerName,
         wager: msg.wager,
+        playerCount: msg.playerCount,
+        forfeit: msg.forfeit,
       });
     });
 

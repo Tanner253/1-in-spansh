@@ -204,18 +204,7 @@ wss.on('connection', (ws) => {
 
       case 'forfeit': {
         if (!playerId) return;
-        const game = lobbyManager.findPlayerGame(playerId);
-        if (!game || game.engine.status !== 'playing') return;
-
-        const remaining = game.players.filter(p => p.id !== playerId);
-        if (remaining.length === 1) {
-          game.engine.status = 'complete';
-          game.engine.winnerId = remaining[0].id;
-          game.engine.state.phase = 'complete';
-          game.engine.state.winner = remaining[0].id;
-        }
-        broadcastGameState(game.id, game);
-        if (game.engine.status === 'complete') handleGameEnd(game);
+        handleForfeit(playerId, playerName);
         break;
       }
 
@@ -225,6 +214,8 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     if (playerId) {
+      handleForfeit(playerId, playerName);
+
       const lobby = lobbyManager.findPlayerLobby(playerId);
       if (lobby && lobby.status === 'waiting') {
         lobbyManager.leaveLobby(lobby.id, playerId);
@@ -236,8 +227,26 @@ wss.on('connection', (ws) => {
   });
 });
 
+function handleForfeit(forfeitPlayerId, forfeitPlayerName) {
+  const game = lobbyManager.findPlayerGame(forfeitPlayerId);
+  if (!game || game.engine.status !== 'playing') return;
+
+  const remaining = game.players.filter(p => p.id !== forfeitPlayerId);
+  if (remaining.length >= 1) {
+    game.engine.status = 'complete';
+    game.engine.winnerId = remaining[0].id;
+    game.engine.state.phase = 'complete';
+    game.engine.state.winner = remaining[0].id;
+    game.forfeitedBy = { id: forfeitPlayerId, name: forfeitPlayerName };
+  }
+  broadcastGameState(game.id, game);
+  if (game.engine.status === 'complete') handleGameEnd(game);
+}
+
 function handleGameEnd(game) {
   const winner = game.players.find(p => p.id === game.engine.winnerId);
+  const playerCount = game.players.length;
+
   game.players.forEach(p => {
     const pws = clients.get(p.id);
     if (pws) {
@@ -247,6 +256,8 @@ function handleGameEnd(game) {
         winnerId: game.engine.winnerId,
         winnerName: winner?.name || 'Unknown',
         wager: game.wager,
+        playerCount,
+        forfeit: game.forfeitedBy || null,
       });
     }
   });

@@ -141,11 +141,7 @@ export default class LobbyManager {
     if (!game) return;
 
     this.games.delete(gameId);
-    const lobby = this.lobbies.get(gameId);
-    if (lobby) {
-      lobby.status = 'waiting';
-      lobby.players.forEach(p => { p.ready = false; });
-    }
+    this.lobbies.delete(gameId);
     return game;
   }
 

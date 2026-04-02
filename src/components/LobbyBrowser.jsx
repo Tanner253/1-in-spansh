@@ -9,10 +9,7 @@ export default function LobbyBrowser() {
   const [wagerToken, setWagerToken] = useState('SOL');
 
   const handleCreate = () => {
-    const wager = wagerAmount && parseFloat(wagerAmount) > 0
-      ? { amount: parseFloat(wagerAmount), token: wagerToken }
-      : null;
-    createLobby({ maxPlayers, wager });
+    createLobby({ maxPlayers, wager: null });
     setShowCreate(false);
     setWagerAmount('');
   };
@@ -55,7 +52,9 @@ export default function LobbyBrowser() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Wager (optional)</label>
+              <label className="block text-sm text-slate-400 mb-1">
+                Wager <span className="text-yellow-400/80 text-xs ml-1">(Coming Soon)</span>
+              </label>
               <div className="flex gap-2">
                 <input
                   type="number"
