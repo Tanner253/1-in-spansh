@@ -1,0 +1,268 @@
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
+import { v4 as uuid } from 'uuid';
+import 'dotenv/config';
+import LobbyManager from './services/LobbyManager.js';
+
+const PORT = process.env.PORT || 3001;
+const clients = new Map();
+
+function send(ws, data) {
+  if (ws.readyState === 1) ws.send(JSON.stringify(data));
+}
+
+function broadcastGameState(gameId, game) {
+  game.players.forEach(p => {
+    const ws = clients.get(p.id);
+    if (ws) {
+      send(ws, {
+        type: 'game_state',
+        gameId,
+        state: game.engine.getStateForPlayer(p.id),
+        players: game.players.map(pl => ({ id: pl.id, name: pl.name })),
+        wager: game.wager,
+      });
+    }
+  });
+}
+
+function broadcastLobbyState(lobby) {
+  if (!lobby) return;
+  lobby.players.forEach(p => {
+    const ws = clients.get(p.id);
+    if (ws) {
+      send(ws, { type: 'lobby_state', lobby: sanitizeLobby(lobby) });
+    }
+  });
+}
+
+function broadcastLobbyList() {
+  const list = lobbyManager.listLobbies();
+  for (const [, ws] of clients) {
+    send(ws, { type: 'lobby_list', lobbies: list });
+  }
+}
+
+function sanitizeLobby(lobby) {
+  return {
+    id: lobby.id,
+    hostId: lobby.hostId,
+    maxPlayers: lobby.maxPlayers,
+    wager: lobby.wager,
+    players: lobby.players,
+    status: lobby.status,
+    chat: lobby.chat.slice(-50),
+  };
+}
+
+const lobbyManager = new LobbyManager(broadcastGameState);
+
+const server = createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('UNO PVP Server');
+});
+
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+  let playerId = null;
+  let playerName = null;
+
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw); } catch { return; }
+
+    switch (msg.type) {
+      case 'auth': {
+        playerId = uuid().slice(0, 12);
+        playerName = (msg.username || 'Player').slice(0, 20);
+        clients.set(playerId, ws);
+        ws.playerId = playerId;
+        ws.playerName = playerName;
+        send(ws, { type: 'auth_ok', playerId, playerName });
+        send(ws, { type: 'lobby_list', lobbies: lobbyManager.listLobbies() });
+        break;
+      }
+
+      case 'create_lobby': {
+        if (!playerId) return;
+        const existing = lobbyManager.findPlayerLobby(playerId);
+        if (existing) {
+          lobbyManager.leaveLobby(existing.id, playerId);
+          broadcastLobbyState(lobbyManager.getLobby(existing.id));
+        }
+        const lobby = lobbyManager.createLobby(playerId, playerName, {
+          maxPlayers: msg.maxPlayers,
+          wager: msg.wager || null,
+        });
+        broadcastLobbyState(lobby);
+        broadcastLobbyList();
+        break;
+      }
+
+      case 'join_lobby': {
+        if (!playerId) return;
+        const existing = lobbyManager.findPlayerLobby(playerId);
+        if (existing) {
+          lobbyManager.leaveLobby(existing.id, playerId);
+          broadcastLobbyState(lobbyManager.getLobby(existing.id));
+        }
+        const result = lobbyManager.joinLobby(msg.lobbyId, playerId, playerName);
+        if (result.error) {
+          send(ws, { type: 'error', message: result.error });
+        } else {
+          broadcastLobbyState(result.lobby);
+          broadcastLobbyList();
+        }
+        break;
+      }
+
+      case 'leave_lobby': {
+        if (!playerId) return;
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        if (!lobby) return;
+        const result = lobbyManager.leaveLobby(lobby.id, playerId);
+        if (!result.dissolved) broadcastLobbyState(result.lobby);
+        send(ws, { type: 'left_lobby' });
+        broadcastLobbyList();
+        break;
+      }
+
+      case 'toggle_ready': {
+        if (!playerId) return;
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        if (!lobby) return;
+        lobbyManager.toggleReady(lobby.id, playerId);
+        broadcastLobbyState(lobby);
+        break;
+      }
+
+      case 'start_game': {
+        if (!playerId) return;
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        if (!lobby) return;
+        const result = lobbyManager.startGame(lobby.id, playerId);
+        if (result.error) {
+          send(ws, { type: 'error', message: result.error });
+        } else {
+          const game = result.game;
+          game.players.forEach(p => {
+            const pws = clients.get(p.id);
+            if (pws) {
+              send(pws, {
+                type: 'game_start',
+                gameId: game.id,
+                state: game.engine.getStateForPlayer(p.id),
+                players: game.players.map(pl => ({ id: pl.id, name: pl.name })),
+                wager: game.wager,
+              });
+            }
+          });
+          broadcastLobbyList();
+        }
+        break;
+      }
+
+      case 'game_action': {
+        if (!playerId) return;
+        const game = lobbyManager.findPlayerGame(playerId);
+        if (!game) return;
+        const result = game.engine.play(playerId, msg.action);
+        if (result.error) {
+          send(ws, { type: 'error', message: result.error });
+        } else {
+          broadcastGameState(game.id, game);
+          if (result.gameComplete) {
+            handleGameEnd(game);
+          }
+        }
+        break;
+      }
+
+      case 'chat': {
+        if (!playerId) return;
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        const game = lobbyManager.findPlayerGame(playerId);
+        const targetId = game?.id || lobby?.id;
+        if (!targetId) return;
+
+        const chatResult = lobbyManager.addChatMessage(targetId, playerId, playerName, msg.text);
+        if (chatResult.success) {
+          const targets = game?.players || lobby?.players || [];
+          targets.forEach(p => {
+            const pws = clients.get(p.id);
+            if (pws) send(pws, { type: 'chat_message', message: chatResult.message });
+          });
+        }
+        break;
+      }
+
+      case 'get_lobbies': {
+        send(ws, { type: 'lobby_list', lobbies: lobbyManager.listLobbies() });
+        break;
+      }
+
+      case 'forfeit': {
+        if (!playerId) return;
+        const game = lobbyManager.findPlayerGame(playerId);
+        if (!game || game.engine.status !== 'playing') return;
+
+        const remaining = game.players.filter(p => p.id !== playerId);
+        if (remaining.length === 1) {
+          game.engine.status = 'complete';
+          game.engine.winnerId = remaining[0].id;
+          game.engine.state.phase = 'complete';
+          game.engine.state.winner = remaining[0].id;
+        }
+        broadcastGameState(game.id, game);
+        if (game.engine.status === 'complete') handleGameEnd(game);
+        break;
+      }
+
+      case 'pong': break;
+    }
+  });
+
+  ws.on('close', () => {
+    if (playerId) {
+      const lobby = lobbyManager.findPlayerLobby(playerId);
+      if (lobby && lobby.status === 'waiting') {
+        lobbyManager.leaveLobby(lobby.id, playerId);
+        broadcastLobbyState(lobbyManager.getLobby(lobby.id));
+        broadcastLobbyList();
+      }
+      clients.delete(playerId);
+    }
+  });
+});
+
+function handleGameEnd(game) {
+  const winner = game.players.find(p => p.id === game.engine.winnerId);
+  game.players.forEach(p => {
+    const pws = clients.get(p.id);
+    if (pws) {
+      send(pws, {
+        type: 'game_end',
+        gameId: game.id,
+        winnerId: game.engine.winnerId,
+        winnerName: winner?.name || 'Unknown',
+        wager: game.wager,
+      });
+    }
+  });
+
+  setTimeout(() => {
+    lobbyManager.endGame(game.id);
+    broadcastLobbyList();
+  }, 5000);
+}
+
+setInterval(() => {
+  for (const [, ws] of clients) {
+    send(ws, { type: 'ping' });
+  }
+}, 25000);
+
+server.listen(PORT, () => {
+  console.log(`UNO PVP server running on port ${PORT}`);
+});
