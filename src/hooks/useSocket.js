@@ -1,8 +1,8 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
-const RECONNECT_BASE_MS = 1000;
-const RECONNECT_MAX_MS = 10000;
+const RECONNECT_DELAY_MS = 2000;
+const CONNECT_TIMEOUT_MS = 8000;
 
 export default function useSocket() {
   const wsRef = useRef(null);
@@ -13,8 +13,9 @@ export default function useSocket() {
   const handlersRef = useRef({});
   const usernameRef = useRef(null);
   const reconnectTimerRef = useRef(null);
-  const reconnectAttemptRef = useRef(0);
+  const connectTimeoutRef = useRef(null);
   const intentionalCloseRef = useRef(false);
+  const connectionIdRef = useRef(0);
 
   const on = useCallback((type, handler) => {
     handlersRef.current[type] = handler;
@@ -28,32 +29,60 @@ export default function useSocket() {
     return false;
   }, []);
 
-  const clearReconnectTimer = useCallback(() => {
+  const clearTimers = useCallback(() => {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
+  }, []);
+
+  const killOldSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.onopen = null;
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
+      if (wsRef.current.readyState < 2) wsRef.current.close();
+      wsRef.current = null;
+    }
   }, []);
 
   const createConnection = useCallback((username, isReconnect = false) => {
-    clearReconnectTimer();
-    if (wsRef.current && wsRef.current.readyState < 2) {
-      wsRef.current.close();
-    }
+    clearTimers();
+    killOldSocket();
 
     if (isReconnect) setReconnecting(true);
 
+    const myId = ++connectionIdRef.current;
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
+    connectTimeoutRef.current = setTimeout(() => {
+      if (connectionIdRef.current !== myId) return;
+      if (ws.readyState !== 1) {
+        ws.onopen = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.onmessage = null;
+        ws.close();
+        scheduleReconnect(username);
+      }
+    }, CONNECT_TIMEOUT_MS);
+
     ws.onopen = () => {
+      if (connectionIdRef.current !== myId) return;
+      clearTimeout(connectTimeoutRef.current);
       setConnected(true);
       setReconnecting(false);
-      reconnectAttemptRef.current = 0;
       ws.send(JSON.stringify({ type: 'auth', username }));
     };
 
     ws.onmessage = (e) => {
+      if (connectionIdRef.current !== myId) return;
       let msg;
       try { msg = JSON.parse(e.data); } catch { return; }
 
@@ -76,17 +105,11 @@ export default function useSocket() {
     };
 
     ws.onclose = () => {
+      if (connectionIdRef.current !== myId) return;
       setConnected(false);
 
       if (!intentionalCloseRef.current && usernameRef.current) {
-        const attempt = reconnectAttemptRef.current;
-        const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, attempt), RECONNECT_MAX_MS);
-        reconnectAttemptRef.current = attempt + 1;
-        setReconnecting(true);
-
-        reconnectTimerRef.current = setTimeout(() => {
-          createConnection(usernameRef.current, true);
-        }, delay);
+        scheduleReconnect(username);
       } else {
         setPlayerId(null);
         setReconnecting(false);
@@ -94,29 +117,39 @@ export default function useSocket() {
     };
 
     ws.onerror = () => {};
-  }, [clearReconnectTimer]);
+
+    function scheduleReconnect(uname) {
+      setReconnecting(true);
+      reconnectTimerRef.current = setTimeout(() => {
+        if (intentionalCloseRef.current) return;
+        createConnection(uname, true);
+      }, RECONNECT_DELAY_MS);
+    }
+  }, [clearTimers, killOldSocket]);
 
   const connect = useCallback((username) => {
     intentionalCloseRef.current = false;
     usernameRef.current = username;
-    reconnectAttemptRef.current = 0;
     createConnection(username, false);
   }, [createConnection]);
 
   const disconnect = useCallback(() => {
     intentionalCloseRef.current = true;
-    clearReconnectTimer();
+    clearTimers();
+    killOldSocket();
     usernameRef.current = null;
-    if (wsRef.current) wsRef.current.close();
-  }, [clearReconnectTimer]);
+    setConnected(false);
+    setReconnecting(false);
+    setPlayerId(null);
+  }, [clearTimers, killOldSocket]);
 
   useEffect(() => {
     return () => {
       intentionalCloseRef.current = true;
-      clearReconnectTimer();
-      if (wsRef.current) wsRef.current.close();
+      clearTimers();
+      killOldSocket();
     };
-  }, [clearReconnectTimer]);
+  }, [clearTimers, killOldSocket]);
 
   return { connected, reconnecting, playerId, playerName, connect, disconnect, send, on };
 }

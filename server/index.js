@@ -322,7 +322,7 @@ setInterval(() => {
   for (const [, ws] of clients) {
     send(ws, { type: 'ping' });
   }
-}, 25000);
+}, 15000);
 
 server.listen(PORT, () => {
   console.log(`UNO PVP server running on port ${PORT}`);
