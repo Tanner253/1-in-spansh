@@ -663,7 +663,7 @@ export default function GameScreen() {
   const playerNameMap = {};
   gamePlayers.forEach(p => { playerNameMap[p.id] = p.name; });
   const currentTurnName = playerNameMap[gameState.currentTurn] || 'Unknown';
-  const showUnoButton = isMyTurn && gameState.myHand?.length === 2;
+  const showUnoButton = gameState.myHand?.length === 1 && !gameState.myUnoCall;
   const timerPct = Math.max(0, (localTimer / 30) * 100);
 
   return (
