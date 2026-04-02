@@ -120,7 +120,7 @@ export default function LoginScreen() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-200">Roadmap</h2>
-          <p className="text-slate-500 text-sm mt-1">What's coming to Solana UNO</p>
+          <p className="text-slate-500 text-sm mt-1">With community support I would like to develop and add these features:</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
