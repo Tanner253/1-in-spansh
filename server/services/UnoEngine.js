@@ -5,7 +5,6 @@
 
 const UNO_COLORS = ['Red', 'Blue', 'Green', 'Yellow'];
 const UNO_VALUES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', '+2'];
-const UNO_WILDS = ['Wild', 'Wild +4'];
 const UNO_INITIAL_CARDS = 7;
 const TURN_TIME_LIMIT_MS = 30_000;
 
@@ -39,6 +38,7 @@ export default class UnoEngine {
   constructor(playerIds) {
     this.playerIds = [...playerIds];
     this.playerCount = playerIds.length;
+    this.eliminated = new Set();
     this.state = this._createInitialState();
     this.status = 'playing';
     this.winnerId = null;
@@ -65,7 +65,7 @@ export default class UnoEngine {
       discard: [startCard],
       hands,
       turnIndex: 0,
-      direction: 1, // 1 = clockwise, -1 = counter-clockwise
+      direction: 1,
       phase: 'playing',
       activeColor: startCard.c,
       activeValue: startCard.v,
@@ -79,14 +79,53 @@ export default class UnoEngine {
     };
   }
 
+  get activePlayers() {
+    return this.playerIds.filter(id => !this.eliminated.has(id));
+  }
+
   get currentPlayerId() {
     return this.playerIds[this.state.turnIndex];
+  }
+
+  _isEliminated(playerId) {
+    return this.eliminated.has(playerId);
+  }
+
+  removePlayer(playerId) {
+    if (this.status !== 'playing') return { alreadyComplete: true };
+    if (!this.playerIds.includes(playerId)) return { error: 'NOT_IN_MATCH' };
+    if (this._isEliminated(playerId)) return { error: 'ALREADY_ELIMINATED' };
+
+    this.eliminated.add(playerId);
+    delete this.state.hands[playerId];
+
+    const remaining = this.activePlayers;
+    if (remaining.length <= 1) {
+      this.state.phase = 'complete';
+      this.state.winner = remaining[0] || null;
+      this.status = 'complete';
+      this.winnerId = remaining[0] || null;
+      return { gameComplete: true };
+    }
+
+    if (this.currentPlayerId === playerId) {
+      if (this.state.phase === 'selectColor') {
+        this.state.activeColor = UNO_COLORS[Math.floor(Math.random() * UNO_COLORS.length)];
+        this.state.phase = 'playing';
+        this.state.pendingWildEffect = null;
+        this.state.waitingForColor = null;
+      }
+      this._advanceToNextActive();
+    }
+
+    return { gameContinues: true };
   }
 
   play(playerId, action) {
     const s = this.state;
     if (s.phase === 'complete') return { error: 'GAME_OVER' };
     if (!this.playerIds.includes(playerId)) return { error: 'NOT_IN_MATCH' };
+    if (this._isEliminated(playerId)) return { error: 'ELIMINATED' };
 
     if (action.action === 'callUno') {
       s.calledUno[playerId] = true;
@@ -184,47 +223,73 @@ export default class UnoEngine {
 
   _applyEffect(value, playerId) {
     const s = this.state;
-    const nextIdx = this._peekNextIndex();
-    const nextPlayer = this.playerIds[nextIdx];
+    const nextId = this._peekNextActivePlayer();
 
     switch (value) {
       case 'Skip':
         s.skipNextTurn = true;
         break;
       case 'Reverse':
-        if (this.playerCount === 2) {
+        if (this.activePlayers.length === 2) {
           s.skipNextTurn = true;
         } else {
           s.direction *= -1;
         }
         break;
       case '+2':
-        this._drawCards(nextPlayer, 2);
+        if (nextId) this._drawCards(nextId, 2);
         s.skipNextTurn = true;
         break;
       case 'Wild +4':
-        this._drawCards(nextPlayer, 4);
+        if (nextId) this._drawCards(nextId, 4);
         s.skipNextTurn = true;
         break;
     }
   }
 
-  _peekNextIndex() {
+  _peekNextActivePlayer() {
     const s = this.state;
-    let next = (s.turnIndex + s.direction + this.playerCount) % this.playerCount;
-    return next;
+    let idx = s.turnIndex;
+    for (let i = 0; i < this.playerCount; i++) {
+      idx = (idx + s.direction + this.playerCount) % this.playerCount;
+      if (!this.eliminated.has(this.playerIds[idx])) return this.playerIds[idx];
+    }
+    return null;
   }
 
   _nextTurn() {
     const s = this.state;
     if (s.skipNextTurn) {
-      // Skip one player, advance by 2 * direction
-      s.turnIndex = (s.turnIndex + 2 * s.direction + 2 * this.playerCount) % this.playerCount;
+      this._advanceBy(2);
       s.skipNextTurn = false;
     } else {
-      s.turnIndex = (s.turnIndex + s.direction + this.playerCount) % this.playerCount;
+      this._advanceBy(1);
     }
     s.turnStartedAt = Date.now();
+  }
+
+  _advanceBy(steps) {
+    const s = this.state;
+    let idx = s.turnIndex;
+    let moved = 0;
+    while (moved < steps) {
+      idx = (idx + s.direction + this.playerCount) % this.playerCount;
+      if (!this.eliminated.has(this.playerIds[idx])) moved++;
+    }
+    s.turnIndex = idx;
+  }
+
+  _advanceToNextActive() {
+    const s = this.state;
+    let idx = s.turnIndex;
+    for (let i = 0; i < this.playerCount; i++) {
+      if (!this.eliminated.has(this.playerIds[idx])) {
+        s.turnIndex = idx;
+        s.turnStartedAt = Date.now();
+        return;
+      }
+      idx = (idx + s.direction + this.playerCount) % this.playerCount;
+    }
   }
 
   handleTimeout() {
@@ -255,8 +320,8 @@ export default class UnoEngine {
 
     const opponents = {};
     this.playerIds.forEach(id => {
-      if (id !== playerId) {
-        opponents[id] = s.hands[id].length;
+      if (id !== playerId && !this.eliminated.has(id)) {
+        opponents[id] = s.hands[id]?.length || 0;
       }
     });
 
@@ -277,7 +342,8 @@ export default class UnoEngine {
       winner: s.winner,
       gameComplete: s.phase === 'complete',
       timeRemaining,
-      playerOrder: this.playerIds,
+      playerOrder: this.activePlayers,
+      eliminated: [...this.eliminated],
     };
   }
 

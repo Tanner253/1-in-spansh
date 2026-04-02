@@ -231,16 +231,28 @@ function handleForfeit(forfeitPlayerId, forfeitPlayerName) {
   const game = lobbyManager.findPlayerGame(forfeitPlayerId);
   if (!game || game.engine.status !== 'playing') return;
 
-  const remaining = game.players.filter(p => p.id !== forfeitPlayerId);
-  if (remaining.length >= 1) {
-    game.engine.status = 'complete';
-    game.engine.winnerId = remaining[0].id;
-    game.engine.state.phase = 'complete';
-    game.engine.state.winner = remaining[0].id;
+  const result = game.engine.removePlayer(forfeitPlayerId);
+
+  // Notify everyone that this player forfeited
+  game.players.forEach(p => {
+    const pws = clients.get(p.id);
+    if (pws) {
+      send(pws, {
+        type: 'player_forfeited',
+        gameId: game.id,
+        playerId: forfeitPlayerId,
+        playerName: forfeitPlayerName,
+      });
+    }
+  });
+
+  if (result.gameComplete) {
     game.forfeitedBy = { id: forfeitPlayerId, name: forfeitPlayerName };
+    broadcastGameState(game.id, game);
+    handleGameEnd(game);
+  } else {
+    broadcastGameState(game.id, game);
   }
-  broadcastGameState(game.id, game);
-  if (game.engine.status === 'complete') handleGameEnd(game);
 }
 
 function handleGameEnd(game) {
