@@ -68,6 +68,16 @@ export function GameProvider({ children }) {
       setChatMessages(prev => [...prev.slice(-99), msg.message]);
     });
 
+    socket.on('reconnected', () => {
+      socket.send({ type: 'get_lobbies' });
+      if (screenRef.current === 'game') {
+        setGameState(null);
+        setGameResult(null);
+        setGameId(null);
+        setScreen('browser');
+      }
+    });
+
     socket.on('kicked', () => {
       setCurrentLobby(null);
       setChatMessages([]);
@@ -143,6 +153,7 @@ export function GameProvider({ children }) {
     setGameState(null);
     setGameResult(null);
     setGameId(null);
+    setCurrentLobby(null);
     setChatMessages([]);
     setScreen('browser');
     socket.send({ type: 'leave_lobby' });
@@ -151,7 +162,8 @@ export function GameProvider({ children }) {
 
   return (
     <GameContext.Provider value={{
-      screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
+      screen, playerId: socket.playerId, playerName: socket.playerName,
+      connected: socket.connected, reconnecting: socket.reconnecting,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
       playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
