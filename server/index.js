@@ -47,6 +47,8 @@ function sanitizeLobby(lobby) {
   return {
     id: lobby.id,
     hostId: lobby.hostId,
+    code: lobby.code,
+    isPrivate: lobby.isPrivate,
     maxPlayers: lobby.maxPlayers,
     wager: lobby.wager,
     players: lobby.players,
@@ -94,6 +96,7 @@ wss.on('connection', (ws) => {
         const lobby = lobbyManager.createLobby(playerId, playerName, {
           maxPlayers: msg.maxPlayers,
           wager: msg.wager || null,
+          isPrivate: !!msg.isPrivate,
         });
         broadcastLobbyState(lobby);
         broadcastLobbyList();
@@ -112,6 +115,41 @@ wss.on('connection', (ws) => {
           send(ws, { type: 'error', message: result.error });
         } else {
           broadcastLobbyState(result.lobby);
+          broadcastLobbyList();
+        }
+        break;
+      }
+
+      case 'join_by_code': {
+        if (!playerId) return;
+        const existing = lobbyManager.findPlayerLobby(playerId);
+        if (existing) {
+          lobbyManager.leaveLobby(existing.id, playerId);
+          broadcastLobbyState(lobbyManager.getLobby(existing.id));
+        }
+        const codeResult = lobbyManager.joinByCode(msg.code, playerId, playerName);
+        if (codeResult.error) {
+          send(ws, { type: 'error', message: codeResult.error });
+        } else {
+          broadcastLobbyState(codeResult.lobby);
+          broadcastLobbyList();
+        }
+        break;
+      }
+
+      case 'kick_player': {
+        if (!playerId) return;
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        if (!lobby) return;
+        const kickResult = lobbyManager.kickPlayer(lobby.id, playerId, msg.targetId);
+        if (kickResult.error) {
+          send(ws, { type: 'error', message: kickResult.error });
+        } else {
+          const kickedWs = clients.get(msg.targetId);
+          if (kickedWs) {
+            send(kickedWs, { type: 'kicked', lobbyId: lobby.id });
+          }
+          broadcastLobbyState(kickResult.lobby);
           broadcastLobbyList();
         }
         break;

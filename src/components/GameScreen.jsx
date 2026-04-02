@@ -427,7 +427,20 @@ class UnoEngine3D {
   _getOpponentPositions(count) {
     if (count === 1) return [{ x: 0, z: -22, rot: 0 }];
     if (count === 2) return [{ x: -18, z: -14, rot: 0.5 }, { x: 18, z: -14, rot: -0.5 }];
-    return [{ x: -20, z: -10, rot: 0.6 }, { x: 0, z: -24, rot: 0 }, { x: 20, z: -10, rot: -0.6 }];
+    const positions = [];
+    const arcStart = -Math.PI * 0.75;
+    const arcEnd = -Math.PI * 0.25;
+    const radius = 24;
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0.5 : i / (count - 1);
+      const angle = arcStart + t * (arcEnd - arcStart);
+      positions.push({
+        x: Math.cos(angle) * radius,
+        z: Math.sin(angle) * radius,
+        rot: -angle - Math.PI / 2,
+      });
+    }
+    return positions;
   }
 
   animateDrawCard(callback) {

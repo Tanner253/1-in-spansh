@@ -1,10 +1,17 @@
 /**
  * LobbyManager - Manages UNO game lobbies
- * Handles creation, joining, ready-up, and game start
+ * Handles creation, joining, ready-up, kick, private lobbies, and game start
  */
 
 import { v4 as uuid } from 'uuid';
 import UnoEngine from './UnoEngine.js';
+
+function generateLobbyCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
 
 export default class LobbyManager {
   constructor(broadcast) {
@@ -14,12 +21,14 @@ export default class LobbyManager {
     this._startTimerLoop();
   }
 
-  createLobby(hostId, hostName, { maxPlayers = 4, wager = null } = {}) {
+  createLobby(hostId, hostName, { maxPlayers = 4, wager = null, isPrivate = false } = {}) {
     const id = uuid().slice(0, 8);
     const lobby = {
       id,
       hostId,
-      maxPlayers: Math.min(4, Math.max(2, maxPlayers)),
+      code: generateLobbyCode(),
+      isPrivate,
+      maxPlayers: Math.min(8, Math.max(2, maxPlayers)),
       wager,
       players: [{ id: hostId, name: hostName, ready: false }],
       status: 'waiting',
@@ -39,6 +48,28 @@ export default class LobbyManager {
 
     lobby.players.push({ id: playerId, name: playerName, ready: false });
     return { success: true, lobby };
+  }
+
+  joinByCode(code, playerId, playerName) {
+    for (const lobby of this.lobbies.values()) {
+      if (lobby.code === code.toUpperCase()) {
+        return this.joinLobby(lobby.id, playerId, playerName);
+      }
+    }
+    return { error: 'INVALID_CODE' };
+  }
+
+  kickPlayer(lobbyId, hostId, targetId) {
+    const lobby = this.lobbies.get(lobbyId);
+    if (!lobby) return { error: 'LOBBY_NOT_FOUND' };
+    if (lobby.hostId !== hostId) return { error: 'NOT_HOST' };
+    if (targetId === hostId) return { error: 'CANNOT_KICK_SELF' };
+
+    const target = lobby.players.find(p => p.id === targetId);
+    if (!target) return { error: 'PLAYER_NOT_IN_LOBBY' };
+
+    lobby.players = lobby.players.filter(p => p.id !== targetId);
+    return { success: true, lobby, kickedName: target.name };
   }
 
   leaveLobby(lobbyId, playerId) {
@@ -125,7 +156,7 @@ export default class LobbyManager {
 
   listLobbies() {
     return Array.from(this.lobbies.values())
-      .filter(l => l.status === 'waiting')
+      .filter(l => l.status === 'waiting' && !l.isPrivate)
       .map(l => ({
         id: l.id,
         hostName: l.players[0]?.name || 'Unknown',

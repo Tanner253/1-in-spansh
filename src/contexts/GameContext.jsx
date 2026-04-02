@@ -68,6 +68,17 @@ export function GameProvider({ children }) {
       setChatMessages(prev => [...prev.slice(-99), msg.message]);
     });
 
+    socket.on('kicked', () => {
+      setCurrentLobby(null);
+      setChatMessages([]);
+      setScreen('browser');
+      showError('You were kicked from the lobby');
+    });
+
+    socket.on('player_forfeited', (msg) => {
+      // Handled via game_state update; could show a toast later
+    });
+
     socket.on('error', (msg) => showError(msg.message));
   }, [socket, showError]);
 
@@ -82,6 +93,14 @@ export function GameProvider({ children }) {
 
   const joinLobby = useCallback((lobbyId) => {
     socket.send({ type: 'join_lobby', lobbyId });
+  }, [socket]);
+
+  const joinByCode = useCallback((code) => {
+    socket.send({ type: 'join_by_code', code });
+  }, [socket]);
+
+  const kickPlayer = useCallback((targetId) => {
+    socket.send({ type: 'kick_player', targetId });
   }, [socket]);
 
   const leaveLobby = useCallback(() => {
@@ -134,7 +153,7 @@ export function GameProvider({ children }) {
     <GameContext.Provider value={{
       screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
-      login, createLobby, joinLobby, leaveLobby, toggleReady, startGame,
+      login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
       playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
     }}>
       {children}

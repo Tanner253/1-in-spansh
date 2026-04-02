@@ -2,16 +2,27 @@ import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 
 export default function LobbyBrowser() {
-  const { lobbies, playerName, createLobby, joinLobby } = useGame();
+  const { lobbies, playerName, createLobby, joinLobby, joinByCode } = useGame();
   const [showCreate, setShowCreate] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState(4);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [wagerAmount, setWagerAmount] = useState('');
   const [wagerToken, setWagerToken] = useState('SOL');
+  const [lobbyCode, setLobbyCode] = useState('');
 
   const handleCreate = () => {
-    createLobby({ maxPlayers, wager: null });
+    createLobby({ maxPlayers, wager: null, isPrivate });
     setShowCreate(false);
     setWagerAmount('');
+    setIsPrivate(false);
+  };
+
+  const handleJoinByCode = (e) => {
+    e.preventDefault();
+    const code = lobbyCode.trim().toUpperCase();
+    if (code.length < 4) return;
+    joinByCode(code);
+    setLobbyCode('');
   };
 
   return (
@@ -46,9 +57,9 @@ export default function LobbyBrowser() {
                 onChange={(e) => setMaxPlayers(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value={2}>2 Players</option>
-                <option value={3}>3 Players</option>
-                <option value={4}>4 Players</option>
+                {[2, 3, 4, 5, 6, 7, 8].map(n => (
+                  <option key={n} value={n}>{n} Players</option>
+                ))}
               </select>
             </div>
             <div>
@@ -76,6 +87,17 @@ export default function LobbyBrowser() {
             </div>
           </div>
 
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setIsPrivate(!isPrivate)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${isPrivate ? 'bg-indigo-600' : 'bg-slate-600'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-5' : ''}`} />
+            </button>
+            <span className="text-sm text-slate-300">Private Lobby <span className="text-slate-500">(invite by code only)</span></span>
+          </div>
+
           <button
             onClick={handleCreate}
             className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
@@ -84,6 +106,24 @@ export default function LobbyBrowser() {
           </button>
         </div>
       )}
+
+      <form onSubmit={handleJoinByCode} className="flex gap-2 mb-6">
+        <input
+          type="text"
+          value={lobbyCode}
+          onChange={(e) => setLobbyCode(e.target.value.toUpperCase())}
+          placeholder="Enter lobby code..."
+          maxLength={6}
+          className="flex-1 px-4 py-2.5 bg-slate-800/60 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono tracking-widest text-center uppercase"
+        />
+        <button
+          type="submit"
+          disabled={lobbyCode.trim().length < 4}
+          className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          Join by Code
+        </button>
+      </form>
 
       <div className="space-y-3">
         {lobbies.length === 0 ? (

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import Chat from './Chat';
 
 export default function LobbyRoom() {
-  const { currentLobby, playerId, toggleReady, startGame, leaveLobby } = useGame();
+  const { currentLobby, playerId, toggleReady, startGame, leaveLobby, kickPlayer } = useGame();
+  const [copied, setCopied] = useState(false);
 
   if (!currentLobby) return null;
 
@@ -11,19 +12,35 @@ export default function LobbyRoom() {
   const allReady = currentLobby.players.every(p => p.id === currentLobby.hostId || p.ready);
   const canStart = isHost && allReady && currentLobby.players.length >= 2;
 
+  const copyCode = () => {
+    navigator.clipboard.writeText(currentLobby.code).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-200">Game Lobby</h2>
-          <p className="text-slate-500 text-sm">
-            Code: <span className="text-indigo-400 font-mono">{currentLobby.id}</span>
+          <div className="flex items-center gap-3 text-sm mt-1">
+            <button
+              onClick={copyCode}
+              className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-mono tracking-widest transition-colors"
+              title="Click to copy"
+            >
+              {currentLobby.code}
+              <span className="text-xs">{copied ? '✓' : '📋'}</span>
+            </button>
+            {currentLobby.isPrivate && (
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">Private</span>
+            )}
             {currentLobby.wager && (
-              <span className="text-yellow-400 ml-3">
+              <span className="text-yellow-400">
                 Wager: {currentLobby.wager.amount} {currentLobby.wager.token}
               </span>
             )}
-          </p>
+          </div>
         </div>
         <button
           onClick={leaveLobby}
@@ -55,13 +72,24 @@ export default function LobbyRoom() {
                     )}
                   </div>
                 </div>
-                {p.id === currentLobby.hostId ? (
-                  <span className="text-xs text-slate-500">—</span>
-                ) : p.ready ? (
-                  <span className="text-green-400 text-sm font-medium">Ready</span>
-                ) : (
-                  <span className="text-slate-500 text-sm">Not Ready</span>
-                )}
+                <div className="flex items-center gap-2">
+                  {p.id === currentLobby.hostId ? (
+                    <span className="text-xs text-slate-500">—</span>
+                  ) : p.ready ? (
+                    <span className="text-green-400 text-sm font-medium">Ready</span>
+                  ) : (
+                    <span className="text-slate-500 text-sm">Not Ready</span>
+                  )}
+                  {isHost && p.id !== currentLobby.hostId && (
+                    <button
+                      onClick={() => kickPlayer(p.id)}
+                      className="ml-2 px-2 py-1 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-md transition-colors"
+                      title={`Kick ${p.name}`}
+                    >
+                      Kick
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
 
