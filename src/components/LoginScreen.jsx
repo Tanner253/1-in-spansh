@@ -49,6 +49,16 @@ export default function LoginScreen() {
         <p className="text-center text-slate-500 text-sm mt-6">
           Create or join a lobby to play UNO with friends
         </p>
+
+        <div className="mt-8 bg-slate-800/40 border border-yellow-500/20 rounded-xl px-5 py-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className="text-yellow-400 text-sm font-semibold tracking-wide uppercase">Solana Wagers</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest bg-yellow-400/15 text-yellow-300 px-2 py-0.5 rounded-full">Coming Soon</span>
+          </div>
+          <p className="text-slate-400 text-xs leading-relaxed">
+            Wager SOL or any Solana token against opponents. No wallet connection required yet.
+          </p>
+        </div>
       </div>
     </div>
   );
