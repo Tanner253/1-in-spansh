@@ -70,11 +70,13 @@ const ROADMAP = [
 export default function LoginScreen() {
   const { login } = useGame();
   const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const name = username.trim();
-    if (name.length < 1) return;
+    if (name.length < 1 || loading) return;
+    setLoading(true);
     login(name);
   };
 
@@ -105,10 +107,15 @@ export default function LoginScreen() {
           />
           <button
             type="submit"
-            disabled={!username.trim()}
+            disabled={!username.trim() || loading}
             className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors text-lg"
           >
-            Play Now
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Connecting...
+              </span>
+            ) : 'Play Now'}
           </button>
         </form>
 
