@@ -85,6 +85,9 @@ export default function LoginScreen() {
       <div className="max-w-md mx-auto mb-16">
         <div className="text-center mb-10">
           <h1 className="text-6xl font-black tracking-tight mb-2">
+            <span className="bg-gradient-to-r from-[#9945FF] to-[#14F195] bg-clip-text text-transparent">S</span>
+            <span className="bg-gradient-to-r from-[#14F195] to-[#00D18C] bg-clip-text text-transparent">O</span>
+            <span className="bg-gradient-to-r from-[#00D18C] to-[#14F195] bg-clip-text text-transparent">L</span>
             <span className="text-red-500">U</span>
             <span className="text-blue-500">N</span>
             <span className="text-green-500">O</span>
