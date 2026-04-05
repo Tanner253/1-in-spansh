@@ -757,51 +757,41 @@ export default function GameScreen() {
       {/* 3D Canvas */}
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Status pill */}
-      <div className={`absolute ${isMobile ? 'top-2 right-2' : 'top-4 right-4'} z-10`}>
+      {/* Status pill with integrated timer */}
+      <div className={`absolute ${isMobile ? 'top-2 left-2 right-2' : 'top-4 left-1/2 -translate-x-1/2'} z-10`}>
         <div
-          className={`${isMobile ? 'px-4 py-2' : 'px-8 py-4'} rounded-full backdrop-blur-md transition-all ${isMyTurn ? 'animate-pulse' : ''}`}
+          className={`${isMobile ? 'px-3 py-1.5' : 'px-6 py-3'} rounded-2xl backdrop-blur-md transition-all overflow-hidden ${isMyTurn ? 'animate-pulse' : ''}`}
           style={{
-            background: isMyTurn ? 'rgba(34, 197, 94, 0.9)' : 'rgba(20, 20, 20, 0.8)',
-            borderWidth: '3px', borderStyle: 'solid',
+            background: isMyTurn ? 'rgba(34, 197, 94, 0.9)' : 'rgba(20, 20, 20, 0.85)',
+            borderWidth: '2px', borderStyle: 'solid',
             borderColor: isMyTurn ? '#22c55e' : (COLOR_HEX[gameState.activeColor] ? `#${COLOR_HEX[gameState.activeColor].toString(16).padStart(6, '0')}` : '#fff'),
             boxShadow: isMyTurn
               ? '0 0 30px rgba(34, 197, 94, 0.8), 0 0 60px rgba(34, 197, 94, 0.4)'
               : `0 5px 20px ${COLOR_HEX[gameState.activeColor] ? `#${COLOR_HEX[gameState.activeColor].toString(16).padStart(6, '0')}40` : 'rgba(0,0,0,0.6)'}`,
           }}
         >
-          <div className={`text-white font-black ${isMobile ? 'text-base' : 'text-2xl'} ${isMyTurn ? 'drop-shadow-lg' : ''}`}>
-            {isMyTurn ? '🎯 YOUR TURN!' : `${currentTurnName}'s TURN`}
+          <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : 'gap-6'}`}>
+            <div className={`text-white font-black ${isMobile ? 'text-sm' : 'text-xl'} whitespace-nowrap ${isMyTurn ? 'drop-shadow-lg' : ''}`}>
+              {isMyTurn ? '🎯 YOUR TURN!' : `${currentTurnName}'s TURN`}
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className={`${isMobile ? 'text-[10px]' : 'text-sm'} uppercase tracking-wider font-bold whitespace-nowrap`}
+                style={{ color: isMyTurn ? 'rgba(255,255,255,0.9)' : (COLOR_HEX[gameState.activeColor] ? `#${COLOR_HEX[gameState.activeColor].toString(16).padStart(6, '0')}` : '#fff') }}
+              >
+                {gameState.activeColor} {gameState.activeValue}
+              </div>
+              <div className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full font-bold ${timerPct < 20 ? 'bg-red-500/30 text-red-300' : 'bg-white/10 text-white/80'}`}>
+                {localTimer}s
+              </div>
+            </div>
           </div>
-          <div
-            className={`${isMobile ? 'text-xs' : 'text-base'} uppercase tracking-wider font-medium`}
-            style={{ color: isMyTurn ? 'rgba(255,255,255,0.9)' : (COLOR_HEX[gameState.activeColor] ? `#${COLOR_HEX[gameState.activeColor].toString(16).padStart(6, '0')}` : '#fff') }}
-          >
-            Active: {gameState.activeColor} {gameState.activeValue}
+          <div className={`${isMobile ? 'mt-1 h-[3px]' : 'mt-2 h-1'} bg-white/10 rounded-full overflow-hidden -mx-1`}>
+            <div
+              className={`h-full rounded-full transition-all duration-1000 ease-linear ${timerPct < 20 ? 'bg-red-500' : isMyTurn ? 'bg-white/80' : 'bg-gray-400'}`}
+              style={{ width: `${timerPct}%` }}
+            />
           </div>
-        </div>
-      </div>
-
-      {/* Turn timer */}
-      <div className={`absolute ${isMobile ? 'top-2 left-2' : 'top-4 left-4'} z-10`}>
-        <div
-          className={`${isMobile ? 'px-2 py-1' : 'px-4 py-2'} rounded-full flex items-center gap-1.5 backdrop-blur-md border-2 ${
-            isMyTurn ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.4)]' : 'border-gray-500'
-          }`}
-          style={{ background: 'rgba(0,0,0,0.7)' }}
-        >
-          <div className={`${isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-full ${isMyTurn ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-          <span className={`text-white font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{localTimer}s</span>
-        </div>
-      </div>
-
-      {/* Timer bar */}
-      <div className="absolute top-14 left-4 right-4 z-10">
-        <div className="h-1 bg-gray-700/50 rounded-full overflow-hidden max-w-md mx-auto">
-          <div
-            className={`h-full rounded-full transition-all duration-1000 ease-linear ${timerPct < 20 ? 'bg-red-500' : isMyTurn ? 'bg-green-400' : 'bg-gray-500'}`}
-            style={{ width: `${timerPct}%` }}
-          />
         </div>
       </div>
 
@@ -809,7 +799,7 @@ export default function GameScreen() {
       {Object.entries(gameState.opponents || {}).map(([oppId, cardCount], idx) => (
         <div
           key={oppId}
-          className={`absolute ${isMobile ? 'top-16 p-2' : 'top-20 p-3'} rounded-xl backdrop-blur-md z-10`}
+          className={`absolute ${isMobile ? 'top-14 p-2' : 'top-20 p-3'} rounded-xl backdrop-blur-md z-10`}
           style={{
             background: 'rgba(0,0,0,0.8)',
             borderLeft: `3px solid ${gameState.currentTurn === oppId ? '#22c55e' : '#e91e63'}`,
