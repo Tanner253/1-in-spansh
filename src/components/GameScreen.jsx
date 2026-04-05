@@ -212,11 +212,25 @@ class UnoEngine3D {
     this.onCardClick = null;
     this.onDeckClick = null;
 
+    this.camOffsetX = 0;
+    this.camOffsetY = 0;
+    this.camZoom = 0;
+    this.isDragging = false;
+    this.dragStart = { x: 0, y: 0 };
+    this.baseCamY = isPortrait ? 35 : 25;
+    this.baseCamZ = isPortrait ? 55 : 45;
+
     this.renderDeckStack();
 
     window.addEventListener('resize', this.handleResize);
     this.renderer.domElement.addEventListener('mousemove', this.handleMouseMove);
     this.renderer.domElement.addEventListener('click', this.handleClick);
+    this.renderer.domElement.addEventListener('mousedown', this.handleMouseDown);
+    this.renderer.domElement.addEventListener('mouseup', this.handleMouseUp);
+    this.renderer.domElement.addEventListener('wheel', this.handleWheel, { passive: false });
+    this.renderer.domElement.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+    this.renderer.domElement.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    this.renderer.domElement.addEventListener('touchend', this.handleTouchEnd);
 
     this.animate();
   }
@@ -468,7 +482,70 @@ class UnoEngine3D {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    this.camTarget = { x: this.mouse.x * 2, y: 25 + this.mouse.y * 1 };
+
+    if (this.isDragging) {
+      const dx = (e.clientX - this.dragStart.x) * 0.03;
+      const dy = (e.clientY - this.dragStart.y) * 0.03;
+      this.camOffsetX = Math.max(-6, Math.min(6, this.camOffsetX - dx));
+      this.camOffsetY = Math.max(-4, Math.min(4, this.camOffsetY + dy));
+      this.dragStart = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  handleMouseDown = (e) => {
+    if (e.button === 0) {
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const hits = this.raycaster.intersectObjects(this.interactables);
+      if (hits.length > 0) return;
+    }
+    this.isDragging = true;
+    this.dragStart = { x: e.clientX, y: e.clientY };
+  };
+
+  handleMouseUp = () => { this.isDragging = false; };
+
+  handleWheel = (e) => {
+    e.preventDefault();
+    this.camZoom = Math.max(-8, Math.min(10, this.camZoom - e.deltaY * 0.02));
+  };
+
+  handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      this.dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (e.touches.length === 2) {
+      this.isDragging = true;
+      this.pinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
+    }
+  };
+
+  handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
+      const delta = (dist - (this.pinchDist || dist)) * 0.05;
+      this.camZoom = Math.max(-8, Math.min(10, this.camZoom + delta));
+      this.pinchDist = dist;
+
+      const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const dx = (mx - this.dragStart.x) * 0.03;
+      const dy = (my - this.dragStart.y) * 0.03;
+      this.camOffsetX = Math.max(-6, Math.min(6, this.camOffsetX - dx));
+      this.camOffsetY = Math.max(-4, Math.min(4, this.camOffsetY + dy));
+      this.dragStart = { x: mx, y: my };
+    }
+  };
+
+  handleTouchEnd = () => {
+    this.isDragging = false;
+    this.pinchDist = null;
   };
 
   handleClick = () => {
@@ -484,11 +561,14 @@ class UnoEngine3D {
   animate = () => {
     this.animationId = requestAnimationFrame(this.animate);
 
-    if (this.camTarget) {
-      this.camera.position.x += (this.camTarget.x - this.camera.position.x) * 0.05;
-      this.camera.position.y += (this.camTarget.y - this.camera.position.y) * 0.05;
-    }
-    this.camera.lookAt(0, -2, 0);
+    const targetX = this.mouse.x * 2 + this.camOffsetX;
+    const targetY = this.baseCamY + this.mouse.y * 1 + this.camOffsetY;
+    const targetZ = this.baseCamZ - this.camZoom;
+
+    this.camera.position.x += (targetX - this.camera.position.x) * 0.08;
+    this.camera.position.y += (targetY - this.camera.position.y) * 0.08;
+    this.camera.position.z += (targetZ - this.camera.position.z) * 0.08;
+    this.camera.lookAt(this.camOffsetX * 0.3, -2, 0);
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(this.interactables);
@@ -532,6 +612,12 @@ class UnoEngine3D {
     window.removeEventListener('resize', this.handleResize);
     this.renderer.domElement.removeEventListener('mousemove', this.handleMouseMove);
     this.renderer.domElement.removeEventListener('click', this.handleClick);
+    this.renderer.domElement.removeEventListener('mousedown', this.handleMouseDown);
+    this.renderer.domElement.removeEventListener('mouseup', this.handleMouseUp);
+    this.renderer.domElement.removeEventListener('wheel', this.handleWheel);
+    this.renderer.domElement.removeEventListener('touchstart', this.handleTouchStart);
+    this.renderer.domElement.removeEventListener('touchmove', this.handleTouchMove);
+    this.renderer.domElement.removeEventListener('touchend', this.handleTouchEnd);
     this.scene.traverse(obj => {
       if (obj.geometry) obj.geometry.dispose();
       if (obj.material) {

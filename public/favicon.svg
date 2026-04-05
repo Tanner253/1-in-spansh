@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="sol" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9945FF"/>
+      <stop offset="100%" stop-color="#14F195"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+  <text x="7" y="46" font-family="Arial Black,Impact,sans-serif" font-weight="900" font-size="28" letter-spacing="-1">
+    <tspan fill="url(#sol)">S</tspan><tspan fill="#ff3333">U</tspan><tspan fill="#1155ff">N</tspan><tspan fill="#00aa00">O</tspan>
+  </text>
+</svg>
