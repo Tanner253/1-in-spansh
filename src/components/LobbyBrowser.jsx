@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
+import RoadmapSection from './RoadmapCards';
 
 export default function LobbyBrowser() {
   const { lobbies, playerName, createLobby, joinLobby, joinByCode } = useGame();
@@ -164,6 +165,10 @@ export default function LobbyBrowser() {
             </div>
           ))
         )}
+      </div>
+
+      <div className="mt-16 max-w-5xl mx-auto">
+        <RoadmapSection />
       </div>
     </div>
   );
