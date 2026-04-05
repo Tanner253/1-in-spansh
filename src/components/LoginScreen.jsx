@@ -64,12 +64,12 @@ function RoadmapCard({ item, index, total }) {
   const [flipped, setFlipped] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  const fanAngle = (index - (total - 1) / 2) * 8;
-  const fanY = Math.abs(index - (total - 1) / 2) * 6;
+  const fanAngle = (index - (total - 1) / 2) * 5;
+  const fanY = Math.abs(index - (total - 1) / 2) * 4;
 
   return (
     <div
-      className="relative cursor-pointer"
+      className="relative cursor-pointer -mx-2 sm:-mx-1"
       style={{
         transform: `rotate(${fanAngle}deg) translateY(${fanY}px)`,
         transformOrigin: 'bottom center',
@@ -81,7 +81,7 @@ function RoadmapCard({ item, index, total }) {
       onClick={() => isMobile && setFlipped(!flipped)}
     >
       <div
-        className="relative w-36 sm:w-40 h-52 sm:h-56 transition-transform duration-500"
+        className="relative w-28 sm:w-36 h-40 sm:h-52 transition-transform duration-500"
         style={{
           transformStyle: 'preserve-3d',
           transform: flipped ? 'rotateY(180deg) translateY(-20px) scale(1.1)' : '',
@@ -96,7 +96,7 @@ function RoadmapCard({ item, index, total }) {
             borderColor: `${item.color}66`,
           }}
         >
-          <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center"
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 flex items-center justify-center"
             style={{ borderColor: item.color }}
           >
             <span className="text-2xl font-black" style={{ color: item.color }}>S</span>
@@ -202,7 +202,7 @@ export default function LoginScreen() {
           <p className="text-slate-600 text-xs mt-1 hidden md:block">Hover a card to flip it</p>
         </div>
 
-        <div className="flex justify-center items-end gap-1 sm:gap-2 pb-8 pt-4 overflow-x-auto" style={{ perspective: '1200px' }}>
+        <div className="flex justify-center items-end gap-0 sm:gap-1 pb-8 pt-4" style={{ perspective: '1200px' }}>
           {ROADMAP.map((item, i) => (
             <RoadmapCard key={item.title} item={item} index={i} total={ROADMAP.length} />
           ))}
