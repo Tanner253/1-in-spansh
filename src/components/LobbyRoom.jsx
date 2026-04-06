@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import Chat from './Chat';
+import { getLobbyJoinUrl, buildLobbyShareTweet, openTwitterIntent } from '../utils/share';
 
 export default function LobbyRoom() {
   const { currentLobby, playerId, toggleReady, startGame, leaveLobby, kickPlayer } = useGame();
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   if (!currentLobby) return null;
 
@@ -12,22 +14,37 @@ export default function LobbyRoom() {
   const allReady = currentLobby.players.every(p => p.id === currentLobby.hostId || p.ready);
   const canStart = isHost && allReady && currentLobby.players.length >= 2;
 
+  const inviteUrl = getLobbyJoinUrl(currentLobby.code);
+
   const copyCode = () => {
     navigator.clipboard.writeText(currentLobby.code).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const copyInviteLink = () => {
+    if (!inviteUrl) return;
+    navigator.clipboard.writeText(inviteUrl).catch(() => {});
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1500);
+  };
+
+  const shareOnX = () => {
+    if (!inviteUrl) return;
+    const { text, url } = buildLobbyShareTweet(currentLobby, inviteUrl);
+    openTwitterIntent({ text, url });
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-bold text-slate-200">Game Lobby</h2>
-          <div className="flex items-center gap-3 text-sm mt-1">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm mt-1">
             <button
               onClick={copyCode}
               className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-mono tracking-widest transition-colors"
-              title="Click to copy"
+              title="Copy lobby code"
             >
               {currentLobby.code}
               <span className="text-xs">{copied ? '✓' : '📋'}</span>
@@ -41,10 +58,29 @@ export default function LobbyRoom() {
               </span>
             )}
           </div>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={copyInviteLink}
+              disabled={!inviteUrl}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-200 transition-colors disabled:opacity-50"
+            >
+              {linkCopied ? '✓ Link copied' : 'Copy invite link'}
+            </button>
+            <button
+              type="button"
+              onClick={shareOnX}
+              disabled={!inviteUrl}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #ff3333, #ff6b81)', boxShadow: '0 2px 12px rgba(255,51,51,0.3)' }}
+            >
+              𝕏 Share lobby
+            </button>
+          </div>
         </div>
         <button
           onClick={leaveLobby}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors shrink-0"
         >
           Leave
         </button>

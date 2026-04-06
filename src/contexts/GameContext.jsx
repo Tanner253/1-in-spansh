@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import useSocket from '../hooks/useSocket';
+import { stripJoinFromUrl } from '../utils/share';
 
 const GameContext = createContext(null);
 
 export function GameProvider({ children }) {
   const socket = useSocket();
+  const urlJoinPendingRef = useRef(null);
+  const urlJoinConsumedRef = useRef(false);
   const [screen, setScreen] = useState('login');
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
@@ -26,9 +29,23 @@ export function GameProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('join');
+      if (p) urlJoinPendingRef.current = p.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
     socket.on('lobby_list', (msg) => {
       setLobbies(msg.lobbies);
       if (screenRef.current === 'login') setScreen('browser');
+      if (urlJoinPendingRef.current && !urlJoinConsumedRef.current) {
+        urlJoinConsumedRef.current = true;
+        const code = urlJoinPendingRef.current;
+        urlJoinPendingRef.current = null;
+        stripJoinFromUrl();
+        socket.send({ type: 'join_by_code', code });
+      }
     });
 
     socket.on('lobby_state', (msg) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection from './RoadmapCards';
 
@@ -114,6 +114,14 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(true);
   const [showRules, setShowRules] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+
+  useEffect(() => {
+    try {
+      const j = new URLSearchParams(window.location.search).get('join');
+      if (j) setInviteCode(j.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
+    } catch (_) {}
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -129,6 +137,15 @@ export default function LoginScreen() {
       {showRules && <HowToPlay onClose={() => setShowRules(false)} />}
 
       <div className="max-w-md mx-auto mb-10 md:mb-16">
+        {inviteCode && (
+          <div className="mb-4 rounded-xl border border-indigo-500/40 bg-indigo-950/40 px-4 py-3 text-center">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300 mb-1">Invite link</p>
+            <p className="text-sm text-slate-200">
+              You&apos;re joining lobby <span className="font-mono font-bold text-white tracking-widest">{inviteCode}</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Enter your name — we&apos;ll drop you in after connect.</p>
+          </div>
+        )}
         <div className="text-center mb-6 md:mb-10">
           <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-2">
             <span className="bg-gradient-to-r from-[#9945FF] to-[#14F195] bg-clip-text text-transparent">S</span>
