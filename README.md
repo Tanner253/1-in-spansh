@@ -167,6 +167,14 @@ The **SOLUNO token** helps fund development, new features, tournaments, and plat
 - Supports active development and server costs
 - Community-first — no VC, no pre-sale dumps
 
+### Token economics & chart utility
+
+| Mechanism | Detail |
+|-----------|--------|
+| **Bond → DEX** | DEX liquidity is paid at bond — when the token graduates from the bonding curve, LP is funded for the chart. |
+| **5% wager rake** | When SOL wagers go live, a **5% rake** on wagers is allocated to **buy back** SOLUNO on the DEX and **burn** supply — supporting the chart and long-term holders. |
+| **In-app utility** | The token ties SOLUNO to the Solana ecosystem: perks in-app, VIP tables, tournaments, and future on-chain features as we ship. |
+
 ---
 
 ## 🚀 Quick Start (Dev)
