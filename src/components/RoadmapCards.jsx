@@ -3,13 +3,53 @@ import React, { useState } from 'react';
 const ROADMAP = [
   { color: '#22c55e', icon: '🎮', title: 'MVP PVP Game', tag: 'Done', desc: 'Multiplayer UNO with 2–8 players, 3D table, lobbies, chat, private codes, and invite links — live and playable.' },
   { color: '#0d9488', icon: '⚖️', title: 'Game Settlement', tag: 'Done', desc: 'Match results, forfeits on disconnect, winner flow, and lobby close after games — foundation for wager payouts when SOL wagers ship.' },
+  { color: '#a855f7', icon: '👁️', title: 'Spectate Mode', tag: 'Done', desc: 'Watch any live game in real time from the lobby browser. Full 3D spectator view with turn indicators and player highlights.' },
   { color: '#ff3333', icon: '💰', title: 'SOL Wagers', tag: 'Up Next', desc: 'Wager SOL or any Solana token head-to-head. Winner takes the pot.' },
   { color: '#9945FF', icon: '🏆', title: 'Tournaments', tag: 'Coming Soon', desc: 'Bracket-style tournaments with pooled SOL prize pots. Weekly & monthly events.' },
   { color: '#14F195', icon: '🎁', title: 'Custom Skins & Lootboxes', tag: 'Coming Soon', desc: 'Cosmetic card backs and table flair — unlock via gameplay, events, and lootbox-style drops (no NFT required).' },
-  { color: '#ff6b81', icon: '👁️', title: 'Spectate + Predict', tag: 'Coming Soon', desc: 'Watch live games, predict the winner, earn tokens from the pool.' },
+  { color: '#ff6b81', icon: '🔮', title: 'Predict & Earn', tag: 'Coming Soon', desc: 'Predict the winner of live games and earn tokens from the prediction pool.' },
   { color: '#1155ff', icon: '📊', title: 'On-Chain Leaderboard', tag: 'Coming Soon', desc: 'Seasonal rankings on Solana. Top players earn SOL airdrops & NFT trophies.' },
   { color: '#ff9500', icon: '👑', title: 'VIP Token-Gated Tables', tag: 'Coming Soon', desc: 'Hold NFTs or tokens to unlock exclusive high-stakes lobbies.' },
   { color: '#00aaff', icon: '⚡', title: 'Daily Challenges', tag: 'Coming Soon', desc: 'Complete tasks — "Win 3 games," "Play 5 reverses" — earn reward tokens.' },
+];
+
+const PATCH_NOTES = [
+  {
+    version: '0.3.0',
+    date: 'Apr 6, 2025',
+    title: 'Spectate, Direction & Player Count',
+    changes: [
+      'Live spectate mode — watch any in-progress game from the lobby browser',
+      'Turn direction indicator (clockwise/counter-clockwise arrow) in game HUD',
+      'Next player highlighted with amber glow + "NEXT" label',
+      'Current player highlighted with green glow on info cards',
+      'Online player count shown in lobby browser',
+      'Live games listed alongside open lobbies',
+    ],
+  },
+  {
+    version: '0.2.0',
+    date: 'Apr 5, 2025',
+    title: 'Lobby & Connection Improvements',
+    changes: [
+      'Disconnected player no longer closes the lobby for everyone',
+      'Lobby closed notification when server force-closes a lobby',
+      'Instant login — auth transitions on server acknowledgment, no timeout',
+      'Client reconnect detection returns you to lobby browser',
+    ],
+  },
+  {
+    version: '0.1.0',
+    date: 'Apr 2025',
+    title: 'MVP Launch',
+    changes: [
+      'Multiplayer UNO: 2–8 players, real-time WebSocket gameplay',
+      '3D table with Three.js card rendering',
+      'Public & private lobbies with invite codes and share links',
+      'In-game chat, forfeit, kick, ready-up, and host controls',
+      'Mobile-optimized UI with swipeable card hand',
+    ],
+  },
 ];
 
 function RoadmapCard({ item, index, total }) {
@@ -146,6 +186,37 @@ function MobileRoadmap() {
         >
           ▶
         </button>
+      </div>
+    </div>
+  );
+}
+
+export function PatchNotes() {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-xl md:text-2xl font-bold text-slate-200 text-center mb-1">Patch Notes</h2>
+      <p className="text-slate-500 text-xs md:text-sm text-center mb-6">Latest updates and improvements</p>
+      <div className="relative pl-6 border-l-2 border-slate-700/60 space-y-8">
+        {PATCH_NOTES.map((patch) => (
+          <div key={patch.version} className="relative">
+            <div className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-slate-900 border-2 border-indigo-500" />
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+                v{patch.version}
+              </span>
+              <span className="text-xs text-slate-500">{patch.date}</span>
+            </div>
+            <h3 className="text-sm font-bold text-white mb-2">{patch.title}</h3>
+            <ul className="space-y-1">
+              {patch.changes.map((change, i) => (
+                <li key={i} className="text-xs text-slate-400 leading-relaxed flex gap-2">
+                  <span className="text-indigo-500 mt-0.5 shrink-0">+</span>
+                  {change}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   );

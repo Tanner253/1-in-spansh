@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
-import RoadmapSection from './RoadmapCards';
+import RoadmapSection, { PatchNotes } from './RoadmapCards';
 import { getLobbyCodeFromSearch } from '../utils/share';
 import HomeDemoVideo from './HomeDemoVideo';
 
@@ -211,6 +211,10 @@ export default function LoginScreen() {
 
       <div className="max-w-5xl mx-auto">
         <RoadmapSection />
+      </div>
+
+      <div className="mt-12 md:mt-16 px-2">
+        <PatchNotes />
       </div>
 
       <footer className="max-w-md mx-auto mt-10 md:mt-16 mb-8 flex flex-col sm:flex-row items-center justify-center gap-3">
