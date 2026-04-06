@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import useSocket from '../hooks/useSocket';
-import { stripJoinFromUrl } from '../utils/share';
+import { getLobbyCodeFromSearch, stripLobbyParamsFromUrl, syncLobbyToUrl } from '../utils/share';
 
 const GameContext = createContext(null);
 
@@ -8,6 +8,7 @@ export function GameProvider({ children }) {
   const socket = useSocket();
   const urlJoinPendingRef = useRef(null);
   const urlJoinConsumedRef = useRef(false);
+  const activeLobbyCodeRef = useRef(null);
   const [screen, setScreen] = useState('login');
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
@@ -29,10 +30,8 @@ export function GameProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    try {
-      const p = new URLSearchParams(window.location.search).get('join');
-      if (p) urlJoinPendingRef.current = p.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-    } catch (_) {}
+    const code = getLobbyCodeFromSearch(window.location.search);
+    if (code) urlJoinPendingRef.current = code;
   }, []);
 
   useEffect(() => {
@@ -43,18 +42,19 @@ export function GameProvider({ children }) {
         urlJoinConsumedRef.current = true;
         const code = urlJoinPendingRef.current;
         urlJoinPendingRef.current = null;
-        stripJoinFromUrl();
         socket.send({ type: 'join_by_code', code });
       }
     });
 
     socket.on('lobby_state', (msg) => {
       setCurrentLobby(msg.lobby);
+      if (msg.lobby?.code) activeLobbyCodeRef.current = msg.lobby.code;
       if (msg.lobby && screenRef.current !== 'game') setScreen('lobby');
     });
 
     socket.on('left_lobby', () => {
       setCurrentLobby(null);
+      activeLobbyCodeRef.current = null;
       setChatMessages([]);
       setScreen('browser');
     });
@@ -90,6 +90,7 @@ export function GameProvider({ children }) {
 
     socket.on('kicked', () => {
       setCurrentLobby(null);
+      activeLobbyCodeRef.current = null;
       setChatMessages([]);
       setScreen('browser');
       showError('You were kicked from the lobby');
@@ -97,6 +98,18 @@ export function GameProvider({ children }) {
 
     socket.on('error', (msg) => showError(msg.message));
   }, [socket, showError]);
+
+  useEffect(() => {
+    const code = currentLobby?.code || activeLobbyCodeRef.current;
+    if ((screen === 'lobby' || screen === 'game') && code) {
+      syncLobbyToUrl(code);
+    }
+  }, [screen, currentLobby?.code]);
+
+  useEffect(() => {
+    if (screen === 'lobby' || screen === 'game' || screen === 'login') return;
+    stripLobbyParamsFromUrl();
+  }, [screen]);
 
   const login = useCallback((username) => {
     socket.connect(username);
@@ -159,6 +172,7 @@ export function GameProvider({ children }) {
     setGameResult(null);
     setGameId(null);
     setCurrentLobby(null);
+    activeLobbyCodeRef.current = null;
     setChatMessages([]);
     setScreen('browser');
     socket.send({ type: 'leave_lobby' });

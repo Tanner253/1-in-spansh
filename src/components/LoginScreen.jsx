@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection from './RoadmapCards';
+import { getLobbyCodeFromSearch } from '../utils/share';
 
 const CA = '4Y4utzQGRtJs24XrdbwCHJyDoCt4NXucTwACofAapump';
 
@@ -117,10 +118,8 @@ export default function LoginScreen() {
   const [inviteCode, setInviteCode] = useState('');
 
   useEffect(() => {
-    try {
-      const j = new URLSearchParams(window.location.search).get('join');
-      if (j) setInviteCode(j.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
-    } catch (_) {}
+    const code = getLobbyCodeFromSearch(window.location.search);
+    if (code) setInviteCode(code);
   }, []);
 
   const handleSubmit = (e) => {

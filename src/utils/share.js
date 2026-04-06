@@ -8,19 +8,49 @@ export function getSiteUrl() {
   return '';
 }
 
+/** Full shareable URL for a lobby (uses ?lobby=CODE). */
 export function getLobbyJoinUrl(code) {
   const base = getSiteUrl();
   const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   if (!base || !c) return base || '';
   const u = new URL(base);
-  u.searchParams.set('join', c);
+  u.searchParams.set('lobby', c);
+  u.searchParams.delete('join');
   return u.toString();
 }
 
-export function stripJoinFromUrl() {
+/** Read lobby code from ?lobby= or legacy ?join=. */
+export function getLobbyCodeFromSearch(search) {
+  try {
+    const q = typeof search === 'string' ? search : window.location.search;
+    const params = new URLSearchParams(q.startsWith('?') ? q : `?${q}`);
+    const raw = params.get('lobby') || params.get('join');
+    if (!raw) return null;
+    return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Put ?lobby=CODE in the address bar (no reload). */
+export function syncLobbyToUrl(code) {
+  try {
+    const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    if (!c) return;
+    const u = new URL(window.location.href);
+    u.searchParams.set('lobby', c);
+    u.searchParams.delete('join');
+    const next = u.pathname + u.search + (u.hash || '');
+    window.history.replaceState({}, '', next);
+  } catch (_) {}
+}
+
+/** Remove ?lobby / ?join from the address bar. */
+export function stripLobbyParamsFromUrl() {
   try {
     const u = new URL(window.location.href);
-    if (!u.searchParams.has('join')) return;
+    if (!u.searchParams.has('lobby') && !u.searchParams.has('join')) return;
+    u.searchParams.delete('lobby');
     u.searchParams.delete('join');
     const next = u.pathname + (u.search || '') + (u.hash || '');
     window.history.replaceState({}, '', next);

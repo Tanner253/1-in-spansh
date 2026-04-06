@@ -38,7 +38,7 @@ SOLUNO is a **real-time multiplayer UNO game** with a full 3D card engine, built
 
 ### Invite links & X share
 
-- **Join URL:** `https://playsoluno.vercel.app/?join=LOBBYCODE` (your 6-character lobby code). Opens the site; the player enters a username and is placed into that lobby after connect.
+- **Join URL:** `https://playsoluno.vercel.app/?lobby=LOBBYCODE` (6-character code). Legacy `?join=` still works. While you’re in a lobby or match, the address bar is updated to this URL so you can copy it from the browser.
 - **In the lobby:** **Copy invite link** copies the full URL; **Share on X** opens a pre-filled post with player count, wager/free game, `$SUNO`, `@osknyo_dev`, and the join link.
 - Set `VITE_SITE_URL` in your deploy env so invite links use your production domain.
 
