@@ -767,7 +767,7 @@ export default function GameScreen() {
       <div ref={containerRef} className="absolute inset-0" />
 
       {/* Status pill with integrated timer */}
-      <div className={`absolute ${isMobile ? 'top-2 left-2 right-2' : 'top-4 left-1/2 -translate-x-1/2'} z-10`}>
+      <div className={`absolute ${isMobile ? 'top-2 left-2 right-2' : 'top-4 left-1/2 -translate-x-1/2'} z-20`}>
         <div
           className={`${isMobile ? 'px-3 py-1.5' : 'px-6 py-3'} rounded-2xl backdrop-blur-md transition-all overflow-hidden ${isMyTurn ? 'animate-pulse' : ''}`}
           style={{
@@ -789,9 +789,6 @@ export default function GameScreen() {
               <div className={`text-white font-black ${isMobile ? 'text-sm' : 'text-xl'} whitespace-nowrap ${isMyTurn ? 'drop-shadow-lg' : ''}`}>
                 {spectating ? `${currentTurnName}'s TURN` : (isMyTurn ? '🎯 YOUR TURN!' : `${currentTurnName}'s TURN`)}
               </div>
-              <span className={`${isMobile ? 'text-base' : 'text-xl'} ${direction === -1 ? 'text-amber-400' : 'text-white/50'}`} title={direction === 1 ? 'Clockwise' : 'Counter-clockwise'}>
-                {direction === 1 ? '↻' : '↺'}
-              </span>
             </div>
             <div className="flex items-center gap-2">
               <div
@@ -805,11 +802,6 @@ export default function GameScreen() {
               </div>
             </div>
           </div>
-          {nextPlayerName && !isComplete && (
-            <div className={`${isMobile ? 'text-[10px] mt-0.5' : 'text-xs mt-1'} text-white/50 font-medium`}>
-              Next: <span className="text-white/70">{nextPlayerId === playerId ? 'You' : nextPlayerName}</span>
-            </div>
-          )}
           <div className={`${isMobile ? 'mt-1 h-[3px]' : 'mt-2 h-1'} bg-white/10 rounded-full overflow-hidden -mx-1`}>
             <div
               className={`h-full rounded-full transition-all duration-1000 ease-linear ${timerPct < 20 ? 'bg-red-500' : isMyTurn ? 'bg-white/80' : 'bg-gray-400'}`}
@@ -819,76 +811,65 @@ export default function GameScreen() {
         </div>
       </div>
 
-      {/* Player info cards */}
-      {Object.entries(gameState.opponents || {}).map(([oppId, cardCount], idx) => {
-        const isCurrent = gameState.currentTurn === oppId;
-        const isNext = nextPlayerId === oppId;
-        let borderColor = '#e91e63';
-        let shadow = 'none';
-        if (isCurrent) {
-          borderColor = '#22c55e';
-          shadow = '0 0 12px rgba(34,197,94,0.6), 0 0 24px rgba(34,197,94,0.3)';
-        } else if (isNext) {
-          borderColor = '#f59e0b';
-          shadow = '0 0 8px rgba(245,158,11,0.4)';
-        }
-        return (
-          <div
-            key={oppId}
-            className={`absolute ${isMobile ? 'top-14 p-2' : 'top-20 p-3'} rounded-xl backdrop-blur-md z-10 transition-all duration-300`}
-            style={{
-              background: isCurrent ? 'rgba(34,197,94,0.15)' : (isNext ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.8)'),
-              borderLeft: `3px solid ${borderColor}`,
-              boxShadow: shadow,
-              left: idx === 0 ? (isMobile ? '8px' : '16px') : undefined,
-              right: idx === 1 ? (isMobile ? '8px' : '16px') : undefined,
-              ...(idx >= 2 ? { left: '50%', transform: 'translateX(-50%)' } : {}),
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full ${isCurrent ? 'bg-green-500' : (isNext ? 'bg-amber-500' : 'bg-pink-500')} flex items-center justify-center text-white font-bold`}>
-                {(playerNameMap[oppId] || '?')[0].toUpperCase()}
+      {/* Player list — left sidebar */}
+      <div className={`absolute ${isMobile ? 'top-12 left-1' : 'top-20 left-3'} z-10 flex flex-col ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
+        {playerOrder.map((pid) => {
+          const isMe = pid === playerId;
+          const isCurrent = gameState.currentTurn === pid;
+          const isNextP = nextPlayerId === pid;
+          const name = isMe ? playerName : (playerNameMap[pid] || 'Player');
+          const cards = isMe ? (gameState.myHand?.length || 0) : (gameState.opponents?.[pid] ?? '?');
+
+          let bg = 'rgba(0,0,0,0.7)';
+          let border = 'transparent';
+          let shadow = 'none';
+          let nameColor = isMe ? 'text-cyan-400' : 'text-slate-300';
+          let avatarBg = isMe ? 'bg-cyan-500' : 'bg-pink-500';
+
+          if (isCurrent) {
+            bg = 'rgba(34,197,94,0.18)';
+            border = '#22c55e';
+            shadow = '0 0 10px rgba(34,197,94,0.5)';
+            nameColor = 'text-green-400';
+            avatarBg = 'bg-green-500';
+          } else if (isNextP) {
+            bg = 'rgba(245,158,11,0.12)';
+            border = '#f59e0b';
+            shadow = '0 0 6px rgba(245,158,11,0.3)';
+            nameColor = 'text-amber-400';
+            avatarBg = 'bg-amber-500';
+          }
+
+          return (
+            <div
+              key={pid}
+              className={`flex items-center ${isMobile ? 'gap-1.5 px-2 py-1 rounded-lg' : 'gap-2 px-3 py-1.5 rounded-xl'} backdrop-blur-md transition-all duration-300`}
+              style={{ background: bg, borderLeft: `3px solid ${border}`, boxShadow: shadow }}
+            >
+              <div className={`${isMobile ? 'w-5 h-5 text-[7px]' : 'w-6 h-6 text-[9px]'} rounded-full ${avatarBg} flex items-center justify-center text-white font-bold shrink-0`}>
+                {isMe ? 'YOU' : name[0].toUpperCase()}
               </div>
-              <span className={`${isCurrent ? 'text-green-400' : (isNext ? 'text-amber-400' : 'text-pink-400')} font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>
-                {playerNameMap[oppId] || 'Player'}
+              <span className={`${nameColor} font-bold ${isMobile ? 'text-[11px]' : 'text-xs'} truncate max-w-[70px]`}>
+                {name}
+              </span>
+              <span className={`text-white/60 font-semibold ${isMobile ? 'text-[10px]' : 'text-xs'} ml-auto tabular-nums`}>
+                {cards}
               </span>
               {isCurrent && (
-                <span className="text-green-400 text-[10px] animate-pulse">●</span>
+                <span className="text-green-400 text-[9px] animate-pulse shrink-0">●</span>
               )}
-              {isNext && !isCurrent && (
-                <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-amber-400/70 font-medium`}>NEXT</span>
+              {isNextP && !isCurrent && (
+                <span className={`${isMobile ? 'text-[7px]' : 'text-[9px]'} text-amber-400/70 font-bold shrink-0`}>NEXT</span>
               )}
             </div>
-            <div className={`text-white font-bold ${isMobile ? 'text-sm' : 'text-lg'}`}>
-              🃏 {cardCount} cards
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Your info */}
-      {!spectating && (
-        <div
-          className={`absolute ${isMobile ? 'bottom-16 left-2 p-2' : 'bottom-24 left-4 p-3'} rounded-xl backdrop-blur-md z-10 transition-all duration-300`}
-          style={{
-            background: isMyTurn ? 'rgba(34,197,94,0.15)' : (nextPlayerId === playerId ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.8)'),
-            borderLeft: `3px solid ${isMyTurn ? '#22c55e' : (nextPlayerId === playerId ? '#f59e0b' : '#00bcd4')}`,
-            boxShadow: isMyTurn ? '0 0 12px rgba(34,197,94,0.6), 0 0 24px rgba(34,197,94,0.3)' : (nextPlayerId === playerId ? '0 0 8px rgba(245,158,11,0.4)' : 'none'),
-          }}
-        >
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full ${isMyTurn ? 'bg-green-500' : 'bg-cyan-500'} flex items-center justify-center text-white font-bold`}>YOU</div>
-            <span className={`${isMyTurn ? 'text-green-400' : 'text-cyan-400'} font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>{playerName}</span>
-            {isMyTurn && <span className="text-green-400 text-[10px] animate-pulse">●</span>}
-            {nextPlayerId === playerId && !isMyTurn && (
-              <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-amber-400/70 font-medium`}>NEXT</span>
-            )}
-          </div>
-          <div className={`text-white font-bold ${isMobile ? 'text-sm' : 'text-lg'}`}>
-            🃏 {gameState.myHand?.length || 0} cards
-          </div>
+          );
+        })}
+        <div className={`flex items-center ${isMobile ? 'gap-1 px-2' : 'gap-1.5 px-3'} mt-0.5`}>
+          <span className={`${isMobile ? 'text-[9px]' : 'text-[10px]'} text-white/30 font-medium`}>
+            {direction === 1 ? '↻ CW' : '↺ CCW'}
+          </span>
         </div>
-      )}
+      </div>
 
       {/* Mobile: Card position indicator */}
       {isMobile && gameState.myHand?.length > 0 && (

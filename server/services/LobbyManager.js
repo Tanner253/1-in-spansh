@@ -205,13 +205,17 @@ export default class LobbyManager {
   _startTimerLoop() {
     setInterval(() => {
       for (const [gameId, game] of this.games) {
-        const engine = game.engine;
-        if (engine.status !== 'playing') continue;
+        try {
+          const engine = game.engine;
+          if (engine.status !== 'playing') continue;
 
-        const elapsed = Date.now() - engine.turnStartedAt;
-        if (elapsed >= engine.turnTimeLimitMs) {
-          engine.handleTimeout();
-          this.broadcast(gameId, game);
+          const elapsed = Date.now() - engine.turnStartedAt;
+          if (elapsed >= engine.turnTimeLimitMs) {
+            engine.handleTimeout();
+            this.broadcast(gameId, game);
+          }
+        } catch (err) {
+          console.error(`[ERROR] Timer loop (game=${gameId}):`, err);
         }
       }
     }, 1000);

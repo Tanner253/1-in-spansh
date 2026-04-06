@@ -4,6 +4,13 @@ import { v4 as uuid } from 'uuid';
 import 'dotenv/config';
 import LobbyManager from './services/LobbyManager.js';
 
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception — keeping process alive:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection — keeping process alive:', reason);
+});
+
 const PORT = process.env.PORT || 3001;
 const clients = new Map();
 const spectators = new Map();
@@ -100,6 +107,7 @@ wss.on('connection', (ws) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
+    try {
     switch (msg.type) {
       case 'auth': {
         playerId = uuid().slice(0, 12);
@@ -314,27 +322,34 @@ wss.on('connection', (ws) => {
 
       case 'pong': break;
     }
+    } catch (err) {
+      console.error(`[ERROR] Message handler (player=${playerId}, type=${msg?.type}):`, err);
+    }
   });
 
   ws.on('close', () => {
-    if (playerId) {
-      handleForfeit(playerId, playerName);
+    try {
+      if (playerId) {
+        handleForfeit(playerId, playerName);
 
-      for (const [gId, specs] of spectators) {
-        specs.delete(playerId);
-        if (specs.size === 0) spectators.delete(gId);
-      }
-
-      const lobby = lobbyManager.findPlayerLobby(playerId);
-      if (lobby && lobby.status === 'waiting') {
-        const result = lobbyManager.leaveLobby(lobby.id, playerId);
-        if (!result.dissolved && result.lobby) {
-          broadcastLobbyState(result.lobby);
+        for (const [gId, specs] of spectators) {
+          specs.delete(playerId);
+          if (specs.size === 0) spectators.delete(gId);
         }
-        broadcastLobbyList();
+
+        const lobby = lobbyManager.findPlayerLobby(playerId);
+        if (lobby && lobby.status === 'waiting') {
+          const result = lobbyManager.leaveLobby(lobby.id, playerId);
+          if (!result.dissolved && result.lobby) {
+            broadcastLobbyState(result.lobby);
+          }
+          broadcastLobbyList();
+        }
+        clients.delete(playerId);
+        broadcastOnlineCount();
       }
-      clients.delete(playerId);
-      broadcastOnlineCount();
+    } catch (err) {
+      console.error(`[ERROR] Close handler (player=${playerId}):`, err);
     }
   });
 });

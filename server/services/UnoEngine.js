@@ -272,9 +272,11 @@ export default class UnoEngine {
     const s = this.state;
     let idx = s.turnIndex;
     let moved = 0;
+    let loops = 0;
     while (moved < steps) {
       idx = (idx + s.direction + this.playerCount) % this.playerCount;
       if (!this.eliminated.has(this.playerIds[idx])) moved++;
+      if (++loops > this.playerCount * 2) break;
     }
     s.turnIndex = idx;
   }
@@ -295,6 +297,10 @@ export default class UnoEngine {
   handleTimeout() {
     const s = this.state;
     if (s.phase === 'complete') return;
+    if (this._isEliminated(this.currentPlayerId)) {
+      this._advanceToNextActive();
+      return;
+    }
 
     if (s.phase === 'selectColor') {
       s.activeColor = UNO_COLORS[Math.floor(Math.random() * UNO_COLORS.length)];
@@ -326,7 +332,7 @@ export default class UnoEngine {
     });
 
     return {
-      myHand: [...(s.hands[playerId] || [])],
+      myHand: s.hands[playerId] ? [...s.hands[playerId]] : [],
       opponents,
       topCard: topDiscard,
       deckCount: s.deck.length,
@@ -334,10 +340,10 @@ export default class UnoEngine {
       activeValue: s.activeValue,
       currentTurn: this.currentPlayerId,
       phase: s.phase,
-      isMyTurn: this.currentPlayerId === playerId,
+      isMyTurn: this.currentPlayerId === playerId && !this.eliminated.has(playerId),
       waitingForColor: s.waitingForColor === playerId,
       lastAction: s.lastAction,
-      myUnoCall: s.calledUno[playerId],
+      myUnoCall: !!s.calledUno[playerId],
       direction: s.direction,
       winner: s.winner,
       gameComplete: s.phase === 'complete',
