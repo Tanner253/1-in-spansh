@@ -4,10 +4,11 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 
 export default function useSocket() {
   const wsRef = useRef(null);
+  const pendingAuthRef = useRef(null);
+  const handlersRef = useRef({});
   const [connected, setConnected] = useState(false);
   const [playerId, setPlayerId] = useState(null);
   const [playerName, setPlayerName] = useState(null);
-  const handlersRef = useRef({});
 
   const on = useCallback((type, handler) => {
     handlersRef.current[type] = handler;
@@ -19,15 +20,14 @@ export default function useSocket() {
     }
   }, []);
 
-  const connect = useCallback((username) => {
-    if (wsRef.current) wsRef.current.close();
-
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
-
+  const wireSocket = useCallback((ws) => {
     ws.onopen = () => {
       setConnected(true);
-      ws.send(JSON.stringify({ type: 'auth', username }));
+      const pending = pendingAuthRef.current;
+      if (pending) {
+        ws.send(JSON.stringify({ type: 'auth', username: pending }));
+        pendingAuthRef.current = null;
+      }
     };
 
     ws.onmessage = (e) => {
@@ -52,12 +52,37 @@ export default function useSocket() {
     ws.onerror = () => {};
   }, []);
 
+  useEffect(() => {
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+    wireSocket(ws);
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [wireSocket]);
+
+  const connect = useCallback((username) => {
+    pendingAuthRef.current = username;
+    const ws = wsRef.current;
+
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'auth', username }));
+      pendingAuthRef.current = null;
+      return;
+    }
+
+    if (ws?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
+    const n = new WebSocket(WS_URL);
+    wsRef.current = n;
+    wireSocket(n);
+  }, [wireSocket]);
+
   const disconnect = useCallback(() => {
     if (wsRef.current) wsRef.current.close();
-  }, []);
-
-  useEffect(() => {
-    return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
 
   return { connected, playerId, playerName, connect, disconnect, send, on };
