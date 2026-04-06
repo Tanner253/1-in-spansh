@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 
 const ROADMAP = [
+  { color: '#22c55e', icon: '🎮', title: 'MVP PVP Game', tag: 'Done', desc: 'Multiplayer UNO with 2–8 players, 3D table, lobbies, chat, private codes, and invite links — live and playable.' },
+  { color: '#0d9488', icon: '⚖️', title: 'Game Settlement', tag: 'Done', desc: 'Match results, forfeits on disconnect, winner flow, and lobby close after games — foundation for wager payouts when SOL wagers ship.' },
   { color: '#ff3333', icon: '💰', title: 'SOL Wagers', tag: 'Up Next', desc: 'Wager SOL or any Solana token head-to-head. Winner takes the pot.' },
   { color: '#9945FF', icon: '🏆', title: 'Tournaments', tag: 'Coming Soon', desc: 'Bracket-style tournaments with pooled SOL prize pots. Weekly & monthly events.' },
-  { color: '#14F195', icon: '🎨', title: 'NFT Card Skins', tag: 'Coming Soon', desc: 'Collect and trade custom card backs — holographic, animated, gold.' },
+  { color: '#14F195', icon: '🎁', title: 'Custom Skins & Lootboxes', tag: 'Coming Soon', desc: 'Cosmetic card backs and table flair — unlock via gameplay, events, and lootbox-style drops (no NFT required).' },
   { color: '#ff6b81', icon: '👁️', title: 'Spectate + Predict', tag: 'Coming Soon', desc: 'Watch live games, predict the winner, earn tokens from the pool.' },
   { color: '#1155ff', icon: '📊', title: 'On-Chain Leaderboard', tag: 'Coming Soon', desc: 'Seasonal rankings on Solana. Top players earn SOL airdrops & NFT trophies.' },
   { color: '#ff9500', icon: '👑', title: 'VIP Token-Gated Tables', tag: 'Coming Soon', desc: 'Hold NFTs or tokens to unlock exclusive high-stakes lobbies.' },

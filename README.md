@@ -120,21 +120,19 @@ Each milestone brings SOLUNO closer to a full on-chain competitive platform.
 ```mermaid
 timeline
     title SOLUNO Development Roadmap
-    section Phase 1 — Live Now ✅
-      Multiplayer UNO : 2–8 player lobbies
-      3D Card Engine : Three.js + GSAP animations
-      Real-time Chat : In-lobby and in-game messaging
-      Private Lobbies : Join by invite code
+    section Shipped ✅
+      MVP PVP Game : Multiplayer UNO, 3D, lobbies, chat, invites
+      Game Settlement : Results, forfeits, lobby close — ready for payouts
     section Phase 2 — Up Next 🔥
       SOL Wagers : Head-to-head wagering with SPL tokens
       Wallet Connect : Phantom / Solflare integration
     section Phase 3 — Coming Soon 🚀
       Tournaments : Bracket-style with pooled SOL prize pots
-      NFT Card Skins : Holographic / animated / gold card backs
+      Custom Skins & Lootboxes : Cosmetics via gameplay & lootbox-style drops
       On-Chain Leaderboard : Seasonal rankings with SOL airdrops
     section Phase 4 — Future 🔮
       Spectate + Predict : Watch live games and predict winners
-      VIP Token-Gated Tables : NFT/token holders get exclusive lobbies
+      VIP Token-Gated Tables : Token holders get exclusive lobbies
       Daily Challenges : "Win 3 games" — earn reward tokens
 ```
 
@@ -142,14 +140,15 @@ timeline
 
 | # | Feature | Status | Description |
 |---|---------|--------|-------------|
-| 1 | **Multiplayer PVP** | ✅ Live | 2–8 players, real-time 3D, public & private lobbies |
-| 2 | **SOL Wagers** | 🔥 Up Next | Wager SOL or any SPL token. Winner takes the pot. |
-| 3 | **Tournaments** | 🔜 Soon | Weekly/monthly brackets with pooled prize pots |
-| 4 | **NFT Card Skins** | 🔜 Soon | Collectible card backs — trade them on-chain |
-| 5 | **On-Chain Leaderboard** | 🔜 Soon | Seasonal ranks, SOL airdrops for top players |
-| 6 | **Spectate + Predict** | 🔜 Soon | Watch games live, predict outcomes, earn from the pool |
-| 7 | **VIP Tables** | 🔜 Soon | Token-gated high-stakes lobbies |
-| 8 | **Daily Challenges** | 🔜 Soon | Complete tasks, earn reward tokens |
+| 1 | **MVP PVP Game** | ✅ Done | Multiplayer UNO, 2–8 players, 3D engine, lobbies, chat, invite links |
+| 2 | **Game Settlement** | ✅ Done | Match results, forfeits, winner flow — foundation for wager settlement |
+| 3 | **SOL Wagers** | 🔥 Up Next | Wager SOL or any SPL token. Winner takes the pot. |
+| 4 | **Tournaments** | 🔜 Soon | Weekly/monthly brackets with pooled prize pots |
+| 5 | **Custom Skins & Lootboxes** | 🔜 Soon | Card backs & flair — unlock via gameplay, events, lootbox-style drops (no NFT gate) |
+| 6 | **On-Chain Leaderboard** | 🔜 Soon | Seasonal ranks, SOL airdrops for top players |
+| 7 | **Spectate + Predict** | 🔜 Soon | Watch games live, predict outcomes, earn from the pool |
+| 8 | **VIP Tables** | 🔜 Soon | Token-gated high-stakes lobbies |
+| 9 | **Daily Challenges** | 🔜 Soon | Complete tasks, earn reward tokens |
 
 ---
 
