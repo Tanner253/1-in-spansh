@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection, { PatchNotes } from './RoadmapCards';
 import { getLobbyCodeFromSearch } from '../utils/share';
-import HomeDemoVideo from './HomeDemoVideo';
+import VideoBackground from './VideoBackground';
 
 const CA = '4Y4utzQGRtJs24XrdbwCHJyDoCt4NXucTwACofAapump';
 
@@ -136,8 +136,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen px-4 py-8 md:py-20 pb-28 sm:pb-20">
-      <HomeDemoVideo />
+    <div className="min-h-screen px-4 py-8 md:py-20 pb-28 sm:pb-20 relative">
+      <VideoBackground />
       {showToken && <TokenPopup onClose={() => setShowToken(false)} />}
       {showRules && <HowToPlay onClose={() => setShowRules(false)} />}
 

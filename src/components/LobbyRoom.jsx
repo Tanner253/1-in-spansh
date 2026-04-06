@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import Chat from './Chat';
 import { getLobbyJoinUrl, buildLobbyShareTweet, openTwitterIntent } from '../utils/share';
+import VideoBackground from './VideoBackground';
 
 export default function LobbyRoom() {
   const { currentLobby, playerId, toggleReady, startGame, leaveLobby, kickPlayer } = useGame();
@@ -36,7 +37,8 @@ export default function LobbyRoom() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto relative">
+      <VideoBackground />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-bold text-slate-200">Game Lobby</h2>

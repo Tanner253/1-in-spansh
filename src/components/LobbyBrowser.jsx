@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection from './RoadmapCards';
+import VideoBackground from './VideoBackground';
 
 export default function LobbyBrowser() {
   const { lobbies, playerName, createLobby, joinLobby, joinByCode, onlineCount, activeGames, fetchActiveGames, spectateGame } = useGame();
@@ -31,7 +32,8 @@ export default function LobbyBrowser() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto relative">
+      <VideoBackground />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">
