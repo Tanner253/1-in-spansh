@@ -6,12 +6,14 @@ import LobbyManager from './services/LobbyManager.js';
 
 const PORT = process.env.PORT || 3001;
 const clients = new Map();
+const spectators = new Map();
 
 function send(ws, data) {
   if (ws.readyState === 1) ws.send(JSON.stringify(data));
 }
 
 function broadcastGameState(gameId, game) {
+  const playerList = game.players.map(pl => ({ id: pl.id, name: pl.name }));
   game.players.forEach(p => {
     const ws = clients.get(p.id);
     if (ws) {
@@ -19,11 +21,28 @@ function broadcastGameState(gameId, game) {
         type: 'game_state',
         gameId,
         state: game.engine.getStateForPlayer(p.id),
-        players: game.players.map(pl => ({ id: pl.id, name: pl.name })),
+        players: playerList,
         wager: game.wager,
       });
     }
   });
+  const specs = spectators.get(gameId);
+  if (specs?.size) {
+    const specState = game.engine.getStateForSpectator();
+    for (const specId of specs) {
+      const ws = clients.get(specId);
+      if (ws) {
+        send(ws, {
+          type: 'game_state',
+          gameId,
+          state: specState,
+          players: playerList,
+          wager: game.wager,
+          spectating: true,
+        });
+      }
+    }
+  }
 }
 
 function broadcastLobbyState(lobby) {
@@ -40,6 +59,13 @@ function broadcastLobbyList() {
   const list = lobbyManager.listLobbies();
   for (const [, ws] of clients) {
     send(ws, { type: 'lobby_list', lobbies: list });
+  }
+}
+
+function broadcastOnlineCount() {
+  const count = clients.size;
+  for (const [, ws] of clients) {
+    send(ws, { type: 'online_count', count });
   }
 }
 
@@ -83,6 +109,7 @@ wss.on('connection', (ws) => {
         ws.playerName = playerName;
         send(ws, { type: 'auth_ok', playerId, playerName });
         send(ws, { type: 'lobby_list', lobbies: lobbyManager.listLobbies() });
+        broadcastOnlineCount();
         break;
       }
 
@@ -240,6 +267,45 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'get_active_games': {
+        if (!playerId) return;
+        const games = lobbyManager.listActiveGames();
+        send(ws, { type: 'active_games', games });
+        break;
+      }
+
+      case 'spectate_game': {
+        if (!playerId) return;
+        const gameId = msg.gameId;
+        const game = lobbyManager.getGame(gameId);
+        if (!game || game.engine.status !== 'playing') {
+          send(ws, { type: 'error', message: 'Game not found or already ended.' });
+          break;
+        }
+        if (!spectators.has(gameId)) spectators.set(gameId, new Set());
+        spectators.get(gameId).add(playerId);
+        const specState = game.engine.getStateForSpectator();
+        send(ws, {
+          type: 'game_start',
+          gameId,
+          state: specState,
+          players: game.players.map(p => ({ id: p.id, name: p.name })),
+          wager: game.wager,
+          spectating: true,
+        });
+        break;
+      }
+
+      case 'stop_spectate': {
+        if (!playerId) return;
+        for (const [gId, specs] of spectators) {
+          specs.delete(playerId);
+          if (specs.size === 0) spectators.delete(gId);
+        }
+        send(ws, { type: 'stopped_spectate' });
+        break;
+      }
+
       case 'forfeit': {
         if (!playerId) return;
         handleForfeit(playerId, playerName);
@@ -254,19 +320,21 @@ wss.on('connection', (ws) => {
     if (playerId) {
       handleForfeit(playerId, playerName);
 
+      for (const [gId, specs] of spectators) {
+        specs.delete(playerId);
+        if (specs.size === 0) spectators.delete(gId);
+      }
+
       const lobby = lobbyManager.findPlayerLobby(playerId);
       if (lobby && lobby.status === 'waiting') {
-        const lobbyId = lobby.id;
-        const ids = lobbyManager.forceCloseLobby(lobbyId);
-        const msg = 'A player disconnected — lobby closed.';
-        for (const pid of ids) {
-          if (pid === playerId) continue;
-          const pws = clients.get(pid);
-          if (pws) send(pws, { type: 'lobby_closed', message: msg });
+        const result = lobbyManager.leaveLobby(lobby.id, playerId);
+        if (!result.dissolved && result.lobby) {
+          broadcastLobbyState(result.lobby);
         }
         broadcastLobbyList();
       }
       clients.delete(playerId);
+      broadcastOnlineCount();
     }
   });
 });
@@ -303,23 +371,32 @@ function handleGameEnd(game) {
   const winner = game.players.find(p => p.id === game.engine.winnerId);
   const playerCount = game.players.length;
 
+  const endMsg = {
+    type: 'game_end',
+    gameId: game.id,
+    winnerId: game.engine.winnerId,
+    winnerName: winner?.name || 'Unknown',
+    wager: game.wager,
+    playerCount,
+    forfeit: game.forfeitedBy || null,
+  };
+
   game.players.forEach(p => {
     const pws = clients.get(p.id);
-    if (pws) {
-      send(pws, {
-        type: 'game_end',
-        gameId: game.id,
-        winnerId: game.engine.winnerId,
-        winnerName: winner?.name || 'Unknown',
-        wager: game.wager,
-        playerCount,
-        forfeit: game.forfeitedBy || null,
-      });
-    }
+    if (pws) send(pws, endMsg);
   });
+
+  const specs = spectators.get(game.id);
+  if (specs?.size) {
+    for (const specId of specs) {
+      const ws = clients.get(specId);
+      if (ws) send(ws, { ...endMsg, spectating: true });
+    }
+  }
 
   setTimeout(() => {
     lobbyManager.endGame(game.id);
+    spectators.delete(game.id);
     broadcastLobbyList();
   }, 5000);
 }

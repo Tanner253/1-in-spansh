@@ -18,6 +18,9 @@ export function GameProvider({ children }) {
   const [gameId, setGameId] = useState(null);
   const [gameResult, setGameResult] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [activeGames, setActiveGames] = useState([]);
+  const [spectating, setSpectating] = useState(false);
   const [error, setError] = useState(null);
   const errorTimerRef = useRef(null);
   const screenRef = useRef(screen);
@@ -38,6 +41,19 @@ export function GameProvider({ children }) {
   useEffect(() => {
     socket.on('auth_ok', () => {
       if (screenRef.current === 'login') setScreen('browser');
+    });
+
+    socket.on('online_count', (msg) => setOnlineCount(msg.count));
+
+    socket.on('active_games', (msg) => setActiveGames(msg.games || []));
+
+    socket.on('stopped_spectate', () => {
+      setSpectating(false);
+      setGameState(null);
+      setGameId(null);
+      setGameResult(null);
+      setGamePlayers([]);
+      setScreen('browser');
     });
 
     socket.on('lobby_list', (msg) => {
@@ -70,6 +86,7 @@ export function GameProvider({ children }) {
       setGamePlayers(msg.players);
       setGameWager(msg.wager);
       setGameResult(null);
+      setSpectating(!!msg.spectating);
       setChatMessages([]);
       setScreen('game');
     });
@@ -202,6 +219,10 @@ export function GameProvider({ children }) {
   }, [socket]);
 
   const returnToLobby = useCallback(() => {
+    if (spectating) {
+      socket.send({ type: 'stop_spectate' });
+    }
+    setSpectating(false);
     setGameState(null);
     setGameResult(null);
     setGameId(null);
@@ -209,17 +230,33 @@ export function GameProvider({ children }) {
     activeLobbyCodeRef.current = null;
     setChatMessages([]);
     setScreen('browser');
-    socket.send({ type: 'leave_lobby' });
+    if (!spectating) {
+      socket.send({ type: 'leave_lobby' });
+    }
     socket.send({ type: 'get_lobbies' });
+  }, [socket, spectating]);
+
+  const fetchActiveGames = useCallback(() => {
+    socket.send({ type: 'get_active_games' });
+  }, [socket]);
+
+  const spectateGame = useCallback((gameId) => {
+    socket.send({ type: 'spectate_game', gameId });
+  }, [socket]);
+
+  const stopSpectating = useCallback(() => {
+    socket.send({ type: 'stop_spectate' });
   }, [socket]);
 
   return (
     <GameContext.Provider value={{
       screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
+      onlineCount, activeGames, spectating,
       showError,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
       playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
+      fetchActiveGames, spectateGame, stopSpectating,
     }}>
       {children}
     </GameContext.Provider>

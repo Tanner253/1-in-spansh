@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection from './RoadmapCards';
 
 export default function LobbyBrowser() {
-  const { lobbies, playerName, createLobby, joinLobby, joinByCode } = useGame();
+  const { lobbies, playerName, createLobby, joinLobby, joinByCode, onlineCount, activeGames, fetchActiveGames, spectateGame } = useGame();
   const [showCreate, setShowCreate] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [isPrivate, setIsPrivate] = useState(false);
   const [wagerAmount, setWagerAmount] = useState('');
   const [wagerToken, setWagerToken] = useState('SOL');
   const [lobbyCode, setLobbyCode] = useState('');
+
+  useEffect(() => {
+    fetchActiveGames();
+  }, [fetchActiveGames]);
 
   const handleCreate = () => {
     createLobby({ maxPlayers, wager: null, isPrivate });
@@ -36,7 +40,14 @@ export default function LobbyBrowser() {
             <span className="text-green-500">O</span>
             <span className="text-slate-300 ml-2">Lobbies</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Playing as <span className="text-indigo-400 font-medium">{playerName}</span></p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-slate-500 text-sm">Playing as <span className="text-indigo-400 font-medium">{playerName}</span></p>
+            <span className="text-slate-700">·</span>
+            <span className="flex items-center gap-1.5 text-sm text-green-400">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              {onlineCount} online
+            </span>
+          </div>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
@@ -126,6 +137,47 @@ export default function LobbyBrowser() {
         </button>
       </form>
 
+      {activeGames.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Live Games</h2>
+          </div>
+          <div className="space-y-3 mb-8">
+            {activeGames.map((game) => (
+              <div
+                key={game.id}
+                className="bg-slate-800/60 backdrop-blur rounded-xl p-4 border border-red-500/20 flex items-center justify-between hover:border-red-500/40 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-red-600/30 rounded-lg flex items-center justify-center text-lg">
+                    <span className="animate-pulse">🔴</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">
+                      {game.players.map(p => p.name).join(' vs ')}
+                    </p>
+                    <div className="flex items-center gap-3 text-sm text-slate-400">
+                      <span>{game.playerCount} players</span>
+                      <span className="text-red-400 font-medium">LIVE</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => spectateGame(game.id)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  Watch
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Open Lobbies</h2>
+      </div>
       <div className="space-y-3">
         {lobbies.length === 0 ? (
           <div className="text-center py-16">

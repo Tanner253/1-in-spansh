@@ -90,15 +90,6 @@ export default class LobbyManager {
     return { success: true, lobby };
   }
 
-  /** Delete lobby entirely; returns all player ids that were in it (e.g. notify on disconnect). */
-  forceCloseLobby(lobbyId) {
-    const lobby = this.lobbies.get(lobbyId);
-    if (!lobby) return [];
-    const ids = lobby.players.map(p => p.id);
-    this.lobbies.delete(lobbyId);
-    return ids;
-  }
-
   toggleReady(lobbyId, playerId) {
     const lobby = this.lobbies.get(lobbyId);
     if (!lobby) return { error: 'LOBBY_NOT_FOUND' };
@@ -173,6 +164,18 @@ export default class LobbyManager {
         maxPlayers: l.maxPlayers,
         wager: l.wager,
         createdAt: l.createdAt,
+      }));
+  }
+
+  listActiveGames() {
+    return Array.from(this.games.values())
+      .filter(g => g.engine.status === 'playing')
+      .map(g => ({
+        id: g.id,
+        players: g.players.map(p => ({ id: p.id, name: p.name })),
+        playerCount: g.players.length,
+        wager: g.wager,
+        startedAt: g.startedAt,
       }));
   }
 

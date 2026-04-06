@@ -347,6 +347,41 @@ export default class UnoEngine {
     };
   }
 
+  getStateForSpectator() {
+    const s = this.state;
+    const topDiscard = s.discard[s.discard.length - 1];
+    const elapsed = Date.now() - s.turnStartedAt;
+    const timeRemaining = Math.max(0, TURN_TIME_LIMIT_MS - elapsed);
+
+    const hands = {};
+    this.playerIds.forEach(id => {
+      if (!this.eliminated.has(id)) {
+        hands[id] = s.hands[id]?.length || 0;
+      }
+    });
+
+    return {
+      myHand: [],
+      opponents: hands,
+      topCard: topDiscard,
+      deckCount: s.deck.length,
+      activeColor: s.activeColor,
+      activeValue: s.activeValue,
+      currentTurn: this.currentPlayerId,
+      phase: s.phase,
+      isMyTurn: false,
+      waitingForColor: false,
+      lastAction: s.lastAction,
+      myUnoCall: false,
+      direction: s.direction,
+      winner: s.winner,
+      gameComplete: s.phase === 'complete',
+      timeRemaining,
+      playerOrder: this.activePlayers,
+      eliminated: [...this.eliminated],
+    };
+  }
+
   get turnTimeLimitMs() {
     return TURN_TIME_LIMIT_MS;
   }

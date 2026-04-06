@@ -640,6 +640,7 @@ export default function GameScreen() {
   const {
     gameState, gamePlayers, gameWager, gameId, playerId, playerName,
     playCard, drawCard, selectColor, callUno, forfeit, gameResult, returnToLobby, connected,
+    spectating,
   } = useGame();
 
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -749,8 +750,16 @@ export default function GameScreen() {
   const playerNameMap = {};
   gamePlayers.forEach(p => { playerNameMap[p.id] = p.name; });
   const currentTurnName = playerNameMap[gameState.currentTurn] || 'Unknown';
-  const showUnoButton = gameState.myHand?.length === 1 && !gameState.myUnoCall;
+  const showUnoButton = gameState.myHand?.length === 1 && !gameState.myUnoCall && !spectating;
   const timerPct = Math.max(0, (localTimer / 30) * 100);
+
+  const direction = gameState.direction || 1;
+  const playerOrder = gameState.playerOrder || [];
+  const currentIdx = playerOrder.indexOf(gameState.currentTurn);
+  const nextPlayerId = currentIdx !== -1 && playerOrder.length > 1
+    ? playerOrder[(currentIdx + direction + playerOrder.length) % playerOrder.length]
+    : null;
+  const nextPlayerName = nextPlayerId ? (playerNameMap[nextPlayerId] || 'Unknown') : null;
 
   return (
     <div className="fixed inset-0 z-40 select-none bg-black">
@@ -771,8 +780,18 @@ export default function GameScreen() {
           }}
         >
           <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : 'gap-6'}`}>
-            <div className={`text-white font-black ${isMobile ? 'text-sm' : 'text-xl'} whitespace-nowrap ${isMyTurn ? 'drop-shadow-lg' : ''}`}>
-              {isMyTurn ? '🎯 YOUR TURN!' : `${currentTurnName}'s TURN`}
+            <div className="flex items-center gap-2">
+              {spectating && (
+                <span className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full font-bold bg-purple-500/30 text-purple-300`}>
+                  SPECTATING
+                </span>
+              )}
+              <div className={`text-white font-black ${isMobile ? 'text-sm' : 'text-xl'} whitespace-nowrap ${isMyTurn ? 'drop-shadow-lg' : ''}`}>
+                {spectating ? `${currentTurnName}'s TURN` : (isMyTurn ? '🎯 YOUR TURN!' : `${currentTurnName}'s TURN`)}
+              </div>
+              <span className={`${isMobile ? 'text-base' : 'text-xl'} ${direction === -1 ? 'text-amber-400' : 'text-white/50'}`} title={direction === 1 ? 'Clockwise' : 'Counter-clockwise'}>
+                {direction === 1 ? '↻' : '↺'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div
@@ -786,6 +805,11 @@ export default function GameScreen() {
               </div>
             </div>
           </div>
+          {nextPlayerName && !isComplete && (
+            <div className={`${isMobile ? 'text-[10px] mt-0.5' : 'text-xs mt-1'} text-white/50 font-medium`}>
+              Next: <span className="text-white/70">{nextPlayerId === playerId ? 'You' : nextPlayerName}</span>
+            </div>
+          )}
           <div className={`${isMobile ? 'mt-1 h-[3px]' : 'mt-2 h-1'} bg-white/10 rounded-full overflow-hidden -mx-1`}>
             <div
               className={`h-full rounded-full transition-all duration-1000 ease-linear ${timerPct < 20 ? 'bg-red-500' : isMyTurn ? 'bg-white/80' : 'bg-gray-400'}`}
@@ -796,48 +820,75 @@ export default function GameScreen() {
       </div>
 
       {/* Player info cards */}
-      {Object.entries(gameState.opponents || {}).map(([oppId, cardCount], idx) => (
+      {Object.entries(gameState.opponents || {}).map(([oppId, cardCount], idx) => {
+        const isCurrent = gameState.currentTurn === oppId;
+        const isNext = nextPlayerId === oppId;
+        let borderColor = '#e91e63';
+        let shadow = 'none';
+        if (isCurrent) {
+          borderColor = '#22c55e';
+          shadow = '0 0 12px rgba(34,197,94,0.6), 0 0 24px rgba(34,197,94,0.3)';
+        } else if (isNext) {
+          borderColor = '#f59e0b';
+          shadow = '0 0 8px rgba(245,158,11,0.4)';
+        }
+        return (
+          <div
+            key={oppId}
+            className={`absolute ${isMobile ? 'top-14 p-2' : 'top-20 p-3'} rounded-xl backdrop-blur-md z-10 transition-all duration-300`}
+            style={{
+              background: isCurrent ? 'rgba(34,197,94,0.15)' : (isNext ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.8)'),
+              borderLeft: `3px solid ${borderColor}`,
+              boxShadow: shadow,
+              left: idx === 0 ? (isMobile ? '8px' : '16px') : undefined,
+              right: idx === 1 ? (isMobile ? '8px' : '16px') : undefined,
+              ...(idx >= 2 ? { left: '50%', transform: 'translateX(-50%)' } : {}),
+            }}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full ${isCurrent ? 'bg-green-500' : (isNext ? 'bg-amber-500' : 'bg-pink-500')} flex items-center justify-center text-white font-bold`}>
+                {(playerNameMap[oppId] || '?')[0].toUpperCase()}
+              </div>
+              <span className={`${isCurrent ? 'text-green-400' : (isNext ? 'text-amber-400' : 'text-pink-400')} font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>
+                {playerNameMap[oppId] || 'Player'}
+              </span>
+              {isCurrent && (
+                <span className="text-green-400 text-[10px] animate-pulse">●</span>
+              )}
+              {isNext && !isCurrent && (
+                <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-amber-400/70 font-medium`}>NEXT</span>
+              )}
+            </div>
+            <div className={`text-white font-bold ${isMobile ? 'text-sm' : 'text-lg'}`}>
+              🃏 {cardCount} cards
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Your info */}
+      {!spectating && (
         <div
-          key={oppId}
-          className={`absolute ${isMobile ? 'top-14 p-2' : 'top-20 p-3'} rounded-xl backdrop-blur-md z-10`}
+          className={`absolute ${isMobile ? 'bottom-16 left-2 p-2' : 'bottom-24 left-4 p-3'} rounded-xl backdrop-blur-md z-10 transition-all duration-300`}
           style={{
-            background: 'rgba(0,0,0,0.8)',
-            borderLeft: `3px solid ${gameState.currentTurn === oppId ? '#22c55e' : '#e91e63'}`,
-            left: idx === 0 ? (isMobile ? '8px' : '16px') : undefined,
-            right: idx === 1 ? (isMobile ? '8px' : '16px') : undefined,
-            ...(idx >= 2 ? { left: '50%', transform: 'translateX(-50%)' } : {}),
+            background: isMyTurn ? 'rgba(34,197,94,0.15)' : (nextPlayerId === playerId ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.8)'),
+            borderLeft: `3px solid ${isMyTurn ? '#22c55e' : (nextPlayerId === playerId ? '#f59e0b' : '#00bcd4')}`,
+            boxShadow: isMyTurn ? '0 0 12px rgba(34,197,94,0.6), 0 0 24px rgba(34,197,94,0.3)' : (nextPlayerId === playerId ? '0 0 8px rgba(245,158,11,0.4)' : 'none'),
           }}
         >
           <div className="flex items-center gap-1.5 mb-0.5">
-            <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full bg-pink-500 flex items-center justify-center text-white font-bold`}>
-              {(playerNameMap[oppId] || '?')[0].toUpperCase()}
-            </div>
-            <span className={`text-pink-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>
-              {playerNameMap[oppId] || 'Player'}
-            </span>
-            {gameState.currentTurn === oppId && (
-              <span className="text-green-400 text-[10px] animate-pulse">●</span>
+            <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full ${isMyTurn ? 'bg-green-500' : 'bg-cyan-500'} flex items-center justify-center text-white font-bold`}>YOU</div>
+            <span className={`${isMyTurn ? 'text-green-400' : 'text-cyan-400'} font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>{playerName}</span>
+            {isMyTurn && <span className="text-green-400 text-[10px] animate-pulse">●</span>}
+            {nextPlayerId === playerId && !isMyTurn && (
+              <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-amber-400/70 font-medium`}>NEXT</span>
             )}
           </div>
           <div className={`text-white font-bold ${isMobile ? 'text-sm' : 'text-lg'}`}>
-            🃏 {cardCount} cards
+            🃏 {gameState.myHand?.length || 0} cards
           </div>
         </div>
-      ))}
-
-      {/* Your info */}
-      <div
-        className={`absolute ${isMobile ? 'bottom-16 left-2 p-2' : 'bottom-24 left-4 p-3'} rounded-xl backdrop-blur-md z-10`}
-        style={{ background: 'rgba(0,0,0,0.8)', borderLeft: '3px solid #00bcd4' }}
-      >
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <div className={`${isMobile ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[10px]'} rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold`}>YOU</div>
-          <span className={`text-cyan-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'} truncate max-w-[80px]`}>{playerName}</span>
-        </div>
-        <div className={`text-white font-bold ${isMobile ? 'text-sm' : 'text-lg'}`}>
-          🃏 {gameState.myHand?.length || 0} cards
-        </div>
-      </div>
+      )}
 
       {/* Mobile: Card position indicator */}
       {isMobile && gameState.myHand?.length > 0 && (
@@ -887,6 +938,16 @@ export default function GameScreen() {
       )}
 
       {/* Bottom action bar */}
+      {spectating ? (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+          <button
+            onClick={returnToLobby}
+            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-colors"
+          >
+            Stop Watching
+          </button>
+        </div>
+      ) : (
       <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex ${isMobile ? 'gap-1' : 'gap-2'} items-center`}>
         {isMobile && (
           <button
@@ -922,6 +983,7 @@ export default function GameScreen() {
           >▶</button>
         )}
       </div>
+      )}
 
       {/* Pot, chat & forfeit */}
       <div className={`absolute ${isMobile ? 'bottom-4 right-2' : 'bottom-4 right-4'} z-10 flex flex-col gap-2 items-end`}>
@@ -934,10 +996,12 @@ export default function GameScreen() {
           onClick={() => setShowChat(!showChat)}
           className="bg-black/70 hover:bg-black/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
         >💬 Chat</button>
-        <button
-          onClick={handleForfeit}
-          className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-        >Forfeit</button>
+        {!spectating && (
+          <button
+            onClick={handleForfeit}
+            className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+          >Forfeit</button>
+        )}
       </div>
 
       {/* Chat overlay */}
@@ -949,6 +1013,27 @@ export default function GameScreen() {
 
       {/* Game Over */}
       {gameResult && (() => {
+        if (spectating) {
+          const wasForfeit = !!gameResult.forfeit;
+          return (
+            <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
+              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 text-center max-w-sm border border-white/10 shadow-2xl">
+                <div className="text-6xl mb-4">🏁</div>
+                <h2 className="text-3xl font-black text-white mb-2">GAME OVER</h2>
+                <p className="text-gray-400 mb-4">
+                  {wasForfeit
+                    ? `${gameResult.forfeit.name} forfeited. ${gameResult.winnerName} wins!`
+                    : `${gameResult.winnerName} wins!`}
+                </p>
+                <button
+                  onClick={returnToLobby}
+                  className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-105 transition-all"
+                >Back to Lobbies</button>
+              </div>
+            </div>
+          );
+        }
+
         const iWon = gameResult.winnerId === playerId;
         const wasForfeit = !!gameResult.forfeit;
         const iForfeited = wasForfeit && gameResult.forfeit.id === playerId;
