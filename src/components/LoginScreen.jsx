@@ -48,15 +48,9 @@ function TokenPopup({ onClose }) {
             </p>
           </div>
           <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/90 mb-1">Wager rake (coming with SOL wagers)</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/90 mb-1">Token utility (coming with SOL wagers)</p>
             <p className="text-xs text-slate-300 leading-relaxed">
-              A <span className="text-white font-semibold">5% rake</span> on wagers will be used to <span className="text-white font-semibold">buy back</span> SOLUNO on the DEX and <span className="text-white font-semibold">burn</span> supply — feeding the chart and rewarding holders.
-            </p>
-          </div>
-          <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-700/50">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-1">App utility</p>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              The token ties SOLUNO to the Solana ecosystem: in-app perks, VIP tables, tournaments, and future on-chain features as we ship.
+              The utility is the loop: a <span className="text-white font-semibold">5% rake</span> on wagers funds <span className="text-white font-semibold">buybacks</span> on the DEX and <span className="text-white font-semibold">burns</span> — gameplay on SOLUNO feeds the chart directly.
             </p>
           </div>
         </div>
