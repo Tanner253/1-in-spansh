@@ -111,7 +111,7 @@ function HowToPlay({ onClose }) {
 }
 
 export default function LoginScreen() {
-  const { login } = useGame();
+  const { login, screen } = useGame();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(true);
@@ -122,6 +122,10 @@ export default function LoginScreen() {
     const code = getLobbyCodeFromSearch(window.location.search);
     if (code) setInviteCode(code);
   }, []);
+
+  useEffect(() => {
+    if (screen !== 'login') setLoading(false);
+  }, [screen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

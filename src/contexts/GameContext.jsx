@@ -22,6 +22,7 @@ export function GameProvider({ children }) {
   const errorTimerRef = useRef(null);
   const screenRef = useRef(screen);
   screenRef.current = screen;
+  const prevConnectedRef = useRef(null);
 
   const showError = useCallback((msg) => {
     setError(msg);
@@ -35,6 +36,10 @@ export function GameProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    socket.on('auth_ok', () => {
+      if (screenRef.current === 'login') setScreen('browser');
+    });
+
     socket.on('lobby_list', (msg) => {
       setLobbies(msg.lobbies);
       if (screenRef.current === 'login') setScreen('browser');
@@ -96,8 +101,37 @@ export function GameProvider({ children }) {
       showError('You were kicked from the lobby');
     });
 
+    socket.on('lobby_closed', (msg) => {
+      setCurrentLobby(null);
+      activeLobbyCodeRef.current = null;
+      setChatMessages([]);
+      setScreen('browser');
+      showError(msg.message || 'Lobby closed');
+    });
+
     socket.on('error', (msg) => showError(msg.message));
   }, [socket, showError]);
+
+  useEffect(() => {
+    const c = socket.connected;
+    if (prevConnectedRef.current === null) {
+      prevConnectedRef.current = c;
+      return;
+    }
+    if (prevConnectedRef.current === true && c === false) {
+      if (screenRef.current === 'game' || screenRef.current === 'lobby') {
+        setCurrentLobby(null);
+        activeLobbyCodeRef.current = null;
+        setGameState(null);
+        setGameId(null);
+        setGameResult(null);
+        setChatMessages([]);
+        setScreen('browser');
+        showError('Disconnected from server');
+      }
+    }
+    prevConnectedRef.current = c;
+  }, [socket.connected, showError]);
 
   useEffect(() => {
     const code = currentLobby?.code || activeLobbyCodeRef.current;
@@ -183,6 +217,7 @@ export function GameProvider({ children }) {
     <GameContext.Provider value={{
       screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
+      showError,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
       playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
     }}>

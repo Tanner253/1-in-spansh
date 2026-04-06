@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
 
@@ -85,5 +85,8 @@ export default function useSocket() {
     if (wsRef.current) wsRef.current.close();
   }, []);
 
-  return { connected, playerId, playerName, connect, disconnect, send, on };
+  return useMemo(
+    () => ({ connected, playerId, playerName, connect, disconnect, send, on }),
+    [connected, playerId, playerName, connect, disconnect, send, on],
+  );
 }

@@ -256,8 +256,14 @@ wss.on('connection', (ws) => {
 
       const lobby = lobbyManager.findPlayerLobby(playerId);
       if (lobby && lobby.status === 'waiting') {
-        lobbyManager.leaveLobby(lobby.id, playerId);
-        broadcastLobbyState(lobbyManager.getLobby(lobby.id));
+        const lobbyId = lobby.id;
+        const ids = lobbyManager.forceCloseLobby(lobbyId);
+        const msg = 'A player disconnected — lobby closed.';
+        for (const pid of ids) {
+          if (pid === playerId) continue;
+          const pws = clients.get(pid);
+          if (pws) send(pws, { type: 'lobby_closed', message: msg });
+        }
         broadcastLobbyList();
       }
       clients.delete(playerId);
