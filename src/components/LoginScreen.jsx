@@ -112,7 +112,9 @@ function HowToPlay({ onClose }) {
 
 export default function LoginScreen() {
   const { login, screen } = useGame();
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => {
+    try { return localStorage.getItem('soluno-username') || ''; } catch { return ''; }
+  });
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(true);
   const [showRules, setShowRules] = useState(false);
@@ -131,6 +133,7 @@ export default function LoginScreen() {
     e.preventDefault();
     const name = username.trim();
     if (name.length < 1 || loading) return;
+    try { localStorage.setItem('soluno-username', name); } catch {}
     setLoading(true);
     login(name);
   };
