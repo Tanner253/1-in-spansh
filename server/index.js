@@ -14,6 +14,7 @@ process.on('unhandledRejection', (reason) => {
 const PORT = process.env.PORT || 3001;
 const clients = new Map();
 const spectators = new Map();
+const globalChat = [];
 
 function send(ws, data) {
   if (ws.readyState === 1) ws.send(JSON.stringify(data));
@@ -117,6 +118,7 @@ wss.on('connection', (ws) => {
         ws.playerName = playerName;
         send(ws, { type: 'auth_ok', playerId, playerName });
         send(ws, { type: 'lobby_list', lobbies: lobbyManager.listLobbies() });
+        send(ws, { type: 'global_chat_history', messages: globalChat.slice(-50) });
         broadcastOnlineCount();
         break;
       }
@@ -266,6 +268,19 @@ wss.on('connection', (ws) => {
             const pws = clients.get(p.id);
             if (pws) send(pws, { type: 'chat_message', message: chatResult.message });
           });
+        }
+        break;
+      }
+
+      case 'global_chat': {
+        if (!playerId) return;
+        const text = (msg.text || '').slice(0, 200).trim();
+        if (!text) break;
+        const gcMsg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), playerId, playerName, text, timestamp: Date.now() };
+        globalChat.push(gcMsg);
+        if (globalChat.length > 100) globalChat.shift();
+        for (const [, cws] of clients) {
+          send(cws, { type: 'global_chat_message', message: gcMsg });
         }
         break;
       }

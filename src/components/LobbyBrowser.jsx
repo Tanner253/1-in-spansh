@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 import RoadmapSection from './RoadmapCards';
 import VideoBackground from './VideoBackground';
+import Chat from './Chat';
 
 export default function LobbyBrowser() {
-  const { lobbies, playerName, createLobby, joinLobby, joinByCode, onlineCount, activeGames, fetchActiveGames, spectateGame } = useGame();
+  const { lobbies, playerName, createLobby, joinLobby, joinByCode, onlineCount, activeGames, fetchActiveGames, spectateGame, globalChatMessages, sendGlobalChat } = useGame();
   const [showCreate, setShowCreate] = useState(false);
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -219,6 +220,10 @@ export default function LobbyBrowser() {
             </div>
           ))
         )}
+      </div>
+
+      <div className="mt-8">
+        <Chat title="Global Chat" messages={globalChatMessages} onSend={sendGlobalChat} />
       </div>
 
       <div className="mt-16 max-w-5xl mx-auto">

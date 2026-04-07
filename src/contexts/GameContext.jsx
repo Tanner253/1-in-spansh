@@ -18,6 +18,7 @@ export function GameProvider({ children }) {
   const [gameId, setGameId] = useState(null);
   const [gameResult, setGameResult] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
+  const [globalChatMessages, setGlobalChatMessages] = useState([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [activeGames, setActiveGames] = useState([]);
   const [spectating, setSpectating] = useState(false);
@@ -108,6 +109,14 @@ export function GameProvider({ children }) {
 
     socket.on('chat_message', (msg) => {
       setChatMessages(prev => [...prev.slice(-99), msg.message]);
+    });
+
+    socket.on('global_chat_history', (msg) => {
+      setGlobalChatMessages(msg.messages || []);
+    });
+
+    socket.on('global_chat_message', (msg) => {
+      setGlobalChatMessages(prev => [...prev.slice(-99), msg.message]);
     });
 
     socket.on('kicked', () => {
@@ -218,6 +227,10 @@ export function GameProvider({ children }) {
     socket.send({ type: 'chat', text });
   }, [socket]);
 
+  const sendGlobalChat = useCallback((text) => {
+    socket.send({ type: 'global_chat', text });
+  }, [socket]);
+
   const returnToLobby = useCallback(() => {
     if (spectating) {
       socket.send({ type: 'stop_spectate' });
@@ -252,10 +265,10 @@ export function GameProvider({ children }) {
     <GameContext.Provider value={{
       screen, playerId: socket.playerId, playerName: socket.playerName, connected: socket.connected,
       lobbies, currentLobby, gameState, gamePlayers, gameWager, gameId, gameResult, chatMessages, error,
-      onlineCount, activeGames, spectating,
+      onlineCount, activeGames, spectating, globalChatMessages,
       showError,
       login, createLobby, joinLobby, joinByCode, kickPlayer, leaveLobby, toggleReady, startGame,
-      playCard, drawCard, selectColor, callUno, forfeit, sendChat, returnToLobby,
+      playCard, drawCard, selectColor, callUno, forfeit, sendChat, sendGlobalChat, returnToLobby,
       fetchActiveGames, spectateGame, stopSpectating,
     }}>
       {children}

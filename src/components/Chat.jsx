@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../contexts/GameContext';
 
-export default function Chat({ compact = false }) {
+export default function Chat({ compact = false, title = 'Chat', messages: extMessages, onSend: extSend }) {
   const { chatMessages, sendChat, playerId } = useGame();
+  const messages = extMessages || chatMessages;
+  const onSend = extSend || sendChat;
   const [text, setText] = useState('');
   const scrollRef = useRef(null);
 
@@ -10,26 +12,26 @@ export default function Chat({ compact = false }) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [messages]);
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    sendChat(text.trim());
+    onSend(text.trim());
     setText('');
   };
 
   return (
     <div className={`flex flex-col bg-slate-800/60 backdrop-blur rounded-xl border border-slate-700/50 ${compact ? 'h-48' : 'h-80'}`}>
       <div className="px-3 py-2 border-b border-slate-700/50">
-        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">Chat</h3>
+        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">{title}</h3>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 text-sm">
-        {chatMessages.length === 0 && (
+        {messages.length === 0 && (
           <p className="text-slate-600 text-xs text-center mt-4">No messages yet</p>
         )}
-        {chatMessages.map((msg) => (
+        {messages.map((msg) => (
           <div key={msg.id}>
             <span className={`font-medium ${msg.playerId === playerId ? 'text-indigo-400' : 'text-slate-300'}`}>
               {msg.playerName}
