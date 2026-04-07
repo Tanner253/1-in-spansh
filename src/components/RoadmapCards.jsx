@@ -15,8 +15,20 @@ const ROADMAP = [
 
 const PATCH_NOTES = [
   {
+    version: '0.4.0',
+    date: 'Apr 6, 2026',
+    title: 'Global Chat, Video Background & Stability',
+    changes: [
+      'Global chat in the lobby browser — talk to everyone online pre and post game',
+      'Looping demo video background across login, lobby browser, and lobby room screens',
+      'Player sidebar redesign — compact leaderboard-style list replaces overlapping info cards',
+      'Server crash protection — global error handlers, timer loop isolation, and disconnect race-condition fixes',
+      'Eliminated-player guards in game engine to prevent state corruption on timeout',
+    ],
+  },
+  {
     version: '0.3.0',
-    date: 'Apr 6, 2025',
+    date: 'Apr 6, 2026',
     title: 'Spectate, Direction & Player Count',
     changes: [
       'Live spectate mode — watch any in-progress game from the lobby browser',
@@ -29,7 +41,7 @@ const PATCH_NOTES = [
   },
   {
     version: '0.2.0',
-    date: 'Apr 5, 2025',
+    date: 'Apr 5, 2026',
     title: 'Lobby & Connection Improvements',
     changes: [
       'Disconnected player no longer closes the lobby for everyone',
@@ -40,7 +52,7 @@ const PATCH_NOTES = [
   },
   {
     version: '0.1.0',
-    date: 'Apr 2025',
+    date: 'Apr 2026',
     title: 'MVP Launch',
     changes: [
       'Multiplayer UNO: 2–8 players, real-time WebSocket gameplay',
